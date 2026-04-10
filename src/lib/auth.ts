@@ -30,15 +30,15 @@ export const authOptions: NextAuthOptions = {
             "X-Resend-Track-Clicks": "false",
             "X-Resend-Track-Opens": "false",
           },
-          text: `Sign in to the Skill Assessment Platform\n\nClick the link below to sign in:\n${url}\n\nThis link expires in 24 hours and can only be used once.\nIf you did not request this, you can safely ignore this email.`,
+          text: `Sign in to the Skill Assessment Platform\n\nCopy and paste this URL into your browser to sign in:\n${url}\n\nThis link expires in 24 hours and can only be used once.\nIf you did not request this, you can safely ignore this email.`,
           html: `
             <div style="font-family:sans-serif;max-width:500px;margin:auto">
               <h2>Sign in to Skill Assessment Platform</h2>
-              <p>Click the button below to sign in. This link expires in 24 hours.</p>
-              <a href="${url}" style="display:inline-block;padding:12px 24px;background:#2563eb;color:white;border-radius:8px;text-decoration:none;font-weight:600;margin:16px 0">
-                Sign In
+              <p>Click the button below to complete your sign in. This link expires in 24 hours.</p>
+              <a href="${process.env.NEXTAUTH_URL}/auth/verify?url=${encodeURIComponent(url)}" style="display:inline-block;padding:12px 24px;background:#2563eb;color:white;border-radius:8px;text-decoration:none;font-weight:600;margin:16px 0">
+                Complete Sign In
               </a>
-              <p style="color:#6b7280;font-size:13px">Or copy and paste this URL into your browser:</p>
+              <p style="color:#6b7280;font-size:13px">Or copy and paste this URL directly into your browser:</p>
               <p style="color:#6b7280;font-size:12px;word-break:break-all">${url}</p>
               <p style="color:#6b7280;font-size:12px;margin-top:24px">If you did not request this email, you can safely ignore it.</p>
             </div>
