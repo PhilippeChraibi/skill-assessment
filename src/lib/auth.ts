@@ -35,7 +35,7 @@ export const authOptions: NextAuthOptions = {
             <div style="font-family:sans-serif;max-width:500px;margin:auto">
               <h2>Sign in to Skill Assessment Platform</h2>
               <p>Click the button below to complete your sign in. This link expires in 24 hours.</p>
-              <a href="${process.env.NEXTAUTH_URL}/auth/verify?data=${Buffer.from(url).toString('base64')}" style="display:inline-block;padding:12px 24px;background:#2563eb;color:white;border-radius:8px;text-decoration:none;font-weight:600;margin:16px 0">
+              <a href="${process.env.NEXTAUTH_URL}/auth/verify?data=${encodeURIComponent(Buffer.from(url).toString('base64'))}" style="display:inline-block;padding:12px 24px;background:#2563eb;color:white;border-radius:8px;text-decoration:none;font-weight:600;margin:16px 0">
                 Complete Sign In
               </a>
               <p style="color:#6b7280;font-size:13px">Or copy and paste this URL directly into your browser:</p>
