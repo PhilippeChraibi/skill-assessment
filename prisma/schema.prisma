@@ -98,10 +98,15 @@ model User {
   emailVerified     DateTime?
   image             String?
 
+  // Set at invite time for candidates
+  jobTitle          String?
+  company           String?
+
   organization      Organization? @relation(fields: [organizationId], references: [id])
   sessions          AssessmentSession[]
   createdCampaigns  Campaign[]    @relation("CampaignCreator")
   integrityReviews  IntegrityReview[]
+  candidateProfile  CandidateProfile?
 
   // NextAuth fields
   accounts          Account[]
@@ -112,6 +117,31 @@ model User {
   deletedAt DateTime? // soft delete
 
   @@map("users")
+}
+
+// ─── CANDIDATE PROFILE (demographics) ───────────────────────────────────────────
+
+model CandidateProfile {
+  id        String  @id @default(cuid())
+  userId    String  @unique
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Collected on first login — all optional
+  yearsOfExperience   String?   // "0-2", "3-5", "6-10", "11-15", "16+"
+  country             String?
+  industrySector      String?   // "Manufacturing", "Retail", "Healthcare", etc.
+  ageRange            String?   // "<25", "25-34", "35-44", "45-54", "55+", "prefer_not"
+  gender              String?   // "male", "female", "non_binary", "prefer_not"
+  educationLevel      String?   // "high_school", "bachelor", "master", "phd", "professional"
+  certifications      String[]  // ["CIPS", "ISM", "APICS", "CPSM", "other"]
+  teamSize            String?   // "just_me", "2-5", "6-15", "16-50", "50+"
+
+  onboardingCompletedAt DateTime?  // null = not yet completed
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("candidate_profiles")
 }
 
 // ─── NEXTAUTH MODELS ────────────────────────────────────────────────────────────

@@ -17,11 +17,23 @@ export default function AuthRedirectPage() {
     }
 
     const role = session.user?.role;
+
     if (role === "ADMIN" || role === "HR") {
       router.replace("/admin");
-    } else {
-      router.replace("/assessment");
+      return;
     }
+
+    // Candidates: check if onboarding demographics have been completed
+    fetch("/api/candidate/profile")
+      .then((r) => r.json())
+      .then((profile) => {
+        if (!profile || !profile.onboardingCompletedAt) {
+          router.replace("/assessment/onboarding");
+        } else {
+          router.replace("/assessment");
+        }
+      })
+      .catch(() => router.replace("/assessment"));
   }, [session, status, router]);
 
   return (
