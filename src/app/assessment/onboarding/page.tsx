@@ -51,6 +51,7 @@ const INDUSTRY_OPTIONS = [
   "Consulting", "Other",
 ];
 const CERTIFICATION_OPTIONS = [
+  { value: "EIPM", label: "EIPM (European Institute of Purchasing Management)" },
   { value: "CIPS", label: "CIPS (Chartered Institute of Procurement & Supply)" },
   { value: "ISM", label: "ISM / CPSM (Institute for Supply Management)" },
   { value: "APICS", label: "APICS / ASCM (CSCP, CPIM)" },
