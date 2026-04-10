@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth-utils";
 import { prisma } from "@/lib/db";
 
-// POST — reassign orphaned data (organizationId = null) to the current admin's org.
-// Safe to call multiple times; only affects records that are truly unowned.
+// POST — reassign all campaigns not already in the current admin's org.
+// Handles the case where campaigns were created under a previous/different org.
+// Safe to call multiple times (idempotent — second call reassigns 0 records).
 export async function POST() {
   try {
     const session = await getSession();
@@ -11,7 +12,7 @@ export async function POST() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    // Re-read from DB in case JWT is still stale
+    // Re-read from DB in case JWT is still stale after org creation
     const dbUser = await prisma.user.findUnique({
       where: { id: session.user.id },
       select: { organizationId: true },
@@ -22,20 +23,16 @@ export async function POST() {
       return NextResponse.json({ error: "No organization" }, { status: 400 });
     }
 
-    // Claim all unowned campaigns
+    // Reassign all campaigns that belong to a different (old) organization.
+    // This covers campaigns created when the admin had no org (filter was bypassed)
+    // or when a previous org existed and a new one was just created.
     const campaigns = await prisma.campaign.updateMany({
-      where: { organizationId: null },
+      where: { NOT: { organizationId: orgId } },
       data: { organizationId: orgId },
     });
 
-    // Claim all unowned job profiles
-    const jobProfiles = await prisma.jobProfile.updateMany({
-      where: { organizationId: null },
-      data: { organizationId: orgId },
-    }).catch(() => ({ count: 0 })); // ignore if column doesn't exist
-
     return NextResponse.json({
-      claimed: { campaigns: campaigns.count, jobProfiles: jobProfiles.count },
+      claimed: { campaigns: campaigns.count },
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
