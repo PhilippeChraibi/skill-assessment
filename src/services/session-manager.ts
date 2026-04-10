@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { logger } from "@/lib/logger";
-import { SessionStatus, AssessmentSession, Answer } from "@/generated/prisma";
+import { SessionStatus, AssessmentSession, Answer } from "@prisma/client";
 import { selectQuestions } from "./question-selector";
 import { scoreAnswer, computeSessionScores } from "./scoring-service";
 import { computeIntegrity } from "./integrity-service";

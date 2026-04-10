@@ -1,4 +1,4 @@
-import { Answer } from "@/generated/prisma";
+import { Answer } from "@prisma/client";
 import { logger } from "@/lib/logger";
 import type { IntegrityFlag } from "@/types";
 

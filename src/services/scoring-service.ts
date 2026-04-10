@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { logger } from "@/lib/logger";
-import { QuestionType, SeniorityLevel, Answer, Question } from "@/generated/prisma";
+import { QuestionType, SeniorityLevel, Answer, Question } from "@prisma/client";
 import type { McqContent, RankedChoiceContent, LlmScoringResponse } from "@/types";
 import { createHash } from "crypto";
 

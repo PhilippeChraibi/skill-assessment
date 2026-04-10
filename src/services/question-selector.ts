@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { logger } from "@/lib/logger";
-import { Question, Dimension, QuestionType } from "@/generated/prisma";
+import { Question, Dimension, QuestionType } from "@prisma/client";
 import type { CampaignSettings } from "@/types";
 
 interface QuestionSelectionInput {
