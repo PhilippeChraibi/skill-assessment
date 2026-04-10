@@ -13,6 +13,8 @@ export default function OrganizationPage() {
   const [newOrgName, setNewOrgName] = useState("");
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState("");
+  const [claiming, setClaiming] = useState(false);
+  const [claimResult, setClaimResult] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/admin/organization")
@@ -41,6 +43,20 @@ export default function OrganizationPage() {
     }
     // Reload the page so the session picks up the new organizationId
     window.location.reload();
+  };
+
+  const handleClaimData = async () => {
+    setClaiming(true);
+    setClaimResult(null);
+    const res = await fetch("/api/admin/organization/claim", { method: "POST" });
+    const data = await res.json();
+    if (!res.ok) {
+      setClaimResult(`Error: ${data.error}`);
+    } else {
+      const c = data.claimed;
+      setClaimResult(`Recovered ${c.campaigns} campaign(s). Refresh the Campaigns page to see them.`);
+    }
+    setClaiming(false);
   };
 
   const handleSave = async () => {
@@ -110,6 +126,31 @@ export default function OrganizationPage() {
   return (
     <div className="space-y-6 max-w-2xl">
       <h1 className="text-2xl font-bold text-gray-900">Organization</h1>
+
+      {/* Data recovery banner */}
+      <div className="bg-amber-50 border border-amber-200 rounded-xl p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="font-medium text-amber-900 text-sm">Recover existing data</p>
+            <p className="text-amber-700 text-sm mt-1">
+              If you had campaigns, job profiles, or questions before setting up this organization,
+              click <strong>Recover Data</strong> to reassign them to this organization.
+            </p>
+            {claimResult && (
+              <p className={`mt-2 text-sm font-medium ${claimResult.startsWith("Error") ? "text-red-600" : "text-green-700"}`}>
+                {claimResult}
+              </p>
+            )}
+          </div>
+          <button
+            onClick={handleClaimData}
+            disabled={claiming}
+            className="shrink-0 px-4 py-2 bg-amber-600 text-white rounded-lg text-sm hover:bg-amber-700 disabled:opacity-50"
+          >
+            {claiming ? "Recovering..." : "Recover Data"}
+          </button>
+        </div>
+      </div>
 
       {/* Org settings */}
       <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
