@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
         isArchived: false,
       },
       include: {
-        jobProfile: { select: { jobFamily: true, seniorityLevel: true, displayName: true } },
+        jobProfile: { select: { id: true, jobFamily: true, seniorityLevel: true, displayName: true } },
         createdBy: { select: { name: true, email: true } },
         _count: { select: { sessions: true } },
       },

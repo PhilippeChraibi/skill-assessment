@@ -29,28 +29,9 @@ export default function NewCampaignPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Fetch job profiles for dropdown
-    fetch("/api/admin/questions?limit=1")
+    fetch("/api/admin/profiles")
       .then((r) => r.json())
-      .catch(() => {});
-
-    // We need a profiles endpoint — for now, we'll use a direct query approach
-    // Profiles are fetched from questions API indirectly
-    fetch("/api/admin/campaigns")
-      .then((r) => r.json())
-      .then((campaigns) => {
-        if (Array.isArray(campaigns)) {
-          const seen = new Set<string>();
-          const uniqueProfiles: JobProfile[] = [];
-          for (const c of campaigns) {
-            if (!seen.has(c.jobProfile.jobFamily + c.jobProfile.seniorityLevel)) {
-              seen.add(c.jobProfile.jobFamily + c.jobProfile.seniorityLevel);
-              uniqueProfiles.push(c.jobProfile);
-            }
-          }
-          setProfiles(uniqueProfiles);
-        }
-      })
+      .then((data) => { if (Array.isArray(data)) setProfiles(data); })
       .catch(() => {});
   }, []);
 
