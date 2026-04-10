@@ -5,7 +5,10 @@ import { Suspense, useState } from "react";
 
 function VerifyContent() {
   const searchParams = useSearchParams();
-  const url = searchParams.get("url") ?? "";
+  // URL is base64-encoded to prevent email scanners (Safe Links) from recognising
+  // and pre-fetching the NextAuth callback URL, which would consume the token.
+  const data = searchParams.get("data") ?? "";
+  const url = data ? atob(data) : "";
   const [clicked, setClicked] = useState(false);
 
   const handleSignIn = () => {
