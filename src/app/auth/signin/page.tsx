@@ -37,8 +37,14 @@ function SignInForm() {
           </div>
           <h2 className="text-xl font-bold text-gray-900">Check your email</h2>
           <p className="text-gray-600">
-            We sent a sign-in link to <strong>{email}</strong>. Click the link to access your assessment.
+            We sent a 6-digit code to <strong>{email}</strong>.
           </p>
+          <a
+            href={`/auth/enter-code?email=${encodeURIComponent(email)}`}
+            className="inline-block px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          >
+            Enter my code →
+          </a>
         </div>
       </div>
     );

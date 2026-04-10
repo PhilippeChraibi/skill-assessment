@@ -18,29 +18,48 @@ export const authOptions: NextAuthOptions = {
         },
       },
       from: process.env.EMAIL_FROM ?? "noreply@assessment.example.com",
-      // Custom sender to disable Resend click tracking (which breaks magic link tokens)
+      // Custom verification: send a 6-digit PIN instead of a magic link URL.
+      // This prevents corporate email security (Microsoft Safe Links) from
+      // pre-visiting and consuming the token before the user can click it.
       async sendVerificationRequest({ identifier: email, url, provider }) {
+        // Extract the raw token from the NextAuth callback URL
+        const rawToken = new URL(url).searchParams.get("token") ?? "";
+
+        // Generate a 6-digit PIN
+        const pin = String(Math.floor(100000 + Math.random() * 900000));
+
+        // Store PIN → rawToken mapping in DB so we can look it up when user enters the PIN
+        await prisma.verificationToken.create({
+          data: {
+            identifier: `pin:${pin}:${email}`,
+            token: rawToken,
+            expires: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes
+          },
+        });
+
+        const enterCodeUrl = `${process.env.NEXTAUTH_URL}/auth/enter-code`;
+
         const transporter = nodemailer.createTransport(provider.server as nodemailer.TransportOptions);
         await transporter.sendMail({
           from: provider.from,
           to: email,
-          subject: "Sign in to Skill Assessment Platform",
-          headers: {
-            // Disable Resend click tracking so the magic link token is not wrapped/corrupted
-            "X-Resend-Track-Clicks": "false",
-            "X-Resend-Track-Opens": "false",
-          },
-          text: `Sign in to the Skill Assessment Platform\n\nCopy and paste this URL into your browser to sign in:\n${url}\n\nThis link expires in 24 hours and can only be used once.\nIf you did not request this, you can safely ignore this email.`,
+          subject: "Your sign-in code – Skill Assessment Platform",
+          text: `Your sign-in code for the Skill Assessment Platform is:\n\n${pin}\n\nGo to ${enterCodeUrl} and enter your email address and this code.\n\nThis code expires in 15 minutes and can only be used once.\nIf you did not request this, you can safely ignore this email.`,
           html: `
             <div style="font-family:sans-serif;max-width:500px;margin:auto">
-              <h2>Sign in to Skill Assessment Platform</h2>
-              <p>Click the button below to complete your sign in. This link expires in 24 hours.</p>
-              <a href="${process.env.NEXTAUTH_URL}/auth/verify?data=${encodeURIComponent(Buffer.from(url).toString('base64'))}" style="display:inline-block;padding:12px 24px;background:#2563eb;color:white;border-radius:8px;text-decoration:none;font-weight:600;margin:16px 0">
-                Complete Sign In
-              </a>
-              <p style="color:#6b7280;font-size:13px">Or copy and paste this URL directly into your browser:</p>
-              <p style="color:#6b7280;font-size:12px;word-break:break-all">${url}</p>
-              <p style="color:#6b7280;font-size:12px;margin-top:24px">If you did not request this email, you can safely ignore it.</p>
+              <h2 style="margin-bottom:8px">Sign in to Skill Assessment Platform</h2>
+              <p style="color:#374151">Enter the code below on the sign-in page to complete your authentication.</p>
+              <div style="margin:24px 0;padding:20px;background:#f3f4f6;border-radius:12px;text-align:center">
+                <p style="margin:0 0 4px;font-size:13px;color:#6b7280;letter-spacing:0.05em">YOUR SIGN-IN CODE</p>
+                <p style="margin:0;font-size:40px;font-weight:700;letter-spacing:0.15em;color:#111827">${pin}</p>
+              </div>
+              <p style="color:#374151;font-size:14px">
+                Go to the sign-in page and enter your email address and this code:
+              </p>
+              <p style="margin:0 0 24px">
+                <a href="${enterCodeUrl}" style="color:#2563eb">${enterCodeUrl}</a>
+              </p>
+              <p style="color:#9ca3af;font-size:12px">This code expires in 15 minutes and can only be used once.<br>If you did not request this, you can safely ignore this email.</p>
             </div>
           `,
         });
