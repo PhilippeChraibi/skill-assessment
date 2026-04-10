@@ -9,13 +9,39 @@ export default function OrganizationPage() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("HR");
   const [inviting, setInviting] = useState(false);
+  const [noOrg, setNoOrg] = useState(false);
+  const [newOrgName, setNewOrgName] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState("");
 
   useEffect(() => {
     fetch("/api/admin/organization")
-      .then((r) => r.json())
-      .then(setOrg)
+      .then(async (r) => {
+        if (r.status === 404) { setNoOrg(true); return null; }
+        return r.json();
+      })
+      .then((data) => { if (data) setOrg(data); })
       .finally(() => setLoading(false));
   }, []);
+
+  const handleCreateOrg = async () => {
+    if (!newOrgName.trim()) return;
+    setCreating(true);
+    setCreateError("");
+    const res = await fetch("/api/admin/organization", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: newOrgName.trim() }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      setCreateError(data.error ?? "Failed to create organization.");
+      setCreating(false);
+      return;
+    }
+    // Reload the page so the session picks up the new organizationId
+    window.location.reload();
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -48,7 +74,38 @@ export default function OrganizationPage() {
   };
 
   if (loading) return <div className="text-gray-400 py-12 text-center">Loading...</div>;
-  if (!org) return <div className="text-gray-500 py-12 text-center">No organization configured.</div>;
+
+  if (noOrg || !org) {
+    return (
+      <div className="max-w-md mx-auto mt-16">
+        <div className="bg-white rounded-xl border border-gray-200 p-8 space-y-6">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Set up your organization</h1>
+            <p className="text-gray-500 text-sm mt-2">
+              Your account isn&apos;t linked to an organization yet. Create one to get started.
+            </p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Organization Name</label>
+            <input
+              value={newOrgName}
+              onChange={(e) => setNewOrgName(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+              placeholder="e.g. Acme Corp"
+            />
+          </div>
+          {createError && <p className="text-red-600 text-sm">{createError}</p>}
+          <button
+            onClick={handleCreateOrg}
+            disabled={creating || !newOrgName.trim()}
+            className="w-full py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50"
+          >
+            {creating ? "Creating..." : "Create Organization"}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 max-w-2xl">
