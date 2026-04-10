@@ -87,10 +87,25 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
+        // First sign-in: seed the token from the user object
         token.id = user.id;
         token.role = user.role;
         token.organizationId = user.organizationId;
         token.preferredLanguage = user.preferredLanguage;
+      }
+      // Always refresh mutable fields from DB so changes (e.g. org creation,
+      // role updates) take effect on the next request without requiring
+      // the user to sign out and back in.
+      if (token.id) {
+        const fresh = await prisma.user.findUnique({
+          where: { id: token.id as string },
+          select: { role: true, organizationId: true, preferredLanguage: true },
+        });
+        if (fresh) {
+          token.role = fresh.role;
+          token.organizationId = fresh.organizationId;
+          token.preferredLanguage = fresh.preferredLanguage;
+        }
       }
       return token;
     },
