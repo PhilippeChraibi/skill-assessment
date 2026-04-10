@@ -15,6 +15,8 @@ export default function OrganizationPage() {
   const [createError, setCreateError] = useState("");
   const [claiming, setClaiming] = useState(false);
   const [claimResult, setClaimResult] = useState<string | null>(null);
+  const [seedingProfiles, setSeedingProfiles] = useState(false);
+  const [seedResult, setSeedResult] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/admin/organization")
@@ -57,6 +59,19 @@ export default function OrganizationPage() {
       setClaimResult(`Recovered ${c.campaigns} campaign(s). Refresh the Campaigns page to see them.`);
     }
     setClaiming(false);
+  };
+
+  const handleSeedProfiles = async () => {
+    setSeedingProfiles(true);
+    setSeedResult(null);
+    const res = await fetch("/api/admin/profiles/seed", { method: "POST" });
+    const data = await res.json();
+    if (!res.ok) {
+      setSeedResult(`Error: ${data.error}`);
+    } else {
+      setSeedResult(`${data.created} job profile(s) initialized successfully.`);
+    }
+    setSeedingProfiles(false);
   };
 
   const handleSave = async () => {
@@ -148,6 +163,32 @@ export default function OrganizationPage() {
             className="shrink-0 px-4 py-2 bg-amber-600 text-white rounded-lg text-sm hover:bg-amber-700 disabled:opacity-50"
           >
             {claiming ? "Recovering..." : "Recover Data"}
+          </button>
+        </div>
+      </div>
+
+      {/* Job profiles initializer */}
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="font-medium text-blue-900 text-sm">Job Profiles</p>
+            <p className="text-blue-700 text-sm mt-1">
+              Job profiles define the roles candidates are assessed against (e.g. Mid-Level Sourcing Specialist).
+              Click <strong>Initialize</strong> to populate the standard procurement &amp; supply chain profiles.
+              Safe to run multiple times.
+            </p>
+            {seedResult && (
+              <p className={`mt-2 text-sm font-medium ${seedResult.startsWith("Error") ? "text-red-600" : "text-green-700"}`}>
+                {seedResult}
+              </p>
+            )}
+          </div>
+          <button
+            onClick={handleSeedProfiles}
+            disabled={seedingProfiles}
+            className="shrink-0 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50"
+          >
+            {seedingProfiles ? "Initializing..." : "Initialize"}
           </button>
         </div>
       </div>
