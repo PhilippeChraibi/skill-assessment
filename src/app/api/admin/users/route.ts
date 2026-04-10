@@ -18,8 +18,8 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { email, role, name } = body;
 
-    if (!email || !role || !["HR", "ADMIN"].includes(role)) {
-      return NextResponse.json({ error: "email and role (HR|ADMIN) required" }, { status: 400 });
+    if (!email || !role || !["HR", "ADMIN", "CANDIDATE"].includes(role)) {
+      return NextResponse.json({ error: "email and role (HR|ADMIN|CANDIDATE) required" }, { status: 400 });
     }
 
     const user = await prisma.user.upsert({
@@ -56,11 +56,12 @@ export async function POST(req: NextRequest) {
           <div style="font-family:sans-serif;max-width:500px;margin:auto">
             <h2>You've been invited</h2>
             <p>You have been added as <strong>${role}</strong> on the Skill Assessment Platform.</p>
-            <p>Click below to sign in and get started:</p>
-            <a href="${signInUrl}" style="display:inline-block;padding:12px 24px;background:#2563eb;color:white;border-radius:8px;text-decoration:none;font-weight:600">
-              Sign In
-            </a>
-            <p style="color:#6b7280;font-size:12px;margin-top:24px">Enter your email address (${email.toLowerCase()}) to receive your magic sign-in link.</p>
+            <p>To sign in:</p>
+            <ol style="color:#374151">
+              <li>Go to the sign-in page: <a href="${signInUrl}">${signInUrl}</a></li>
+              <li>Enter your email address: <strong>${email.toLowerCase()}</strong></li>
+              <li>You will receive a 6-digit code by email — enter it to complete sign-in.</li>
+            </ol>
           </div>
         `,
       });
