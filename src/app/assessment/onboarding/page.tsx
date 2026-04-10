@@ -3,6 +3,24 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+const COUNTRIES = [
+  "Afghanistan","Albania","Algeria","Angola","Argentina","Armenia","Australia","Austria","Azerbaijan",
+  "Bahrain","Bangladesh","Belarus","Belgium","Benin","Bolivia","Bosnia and Herzegovina","Botswana","Brazil",
+  "Bulgaria","Burkina Faso","Cambodia","Cameroon","Canada","Chile","China","Colombia","Congo (DRC)",
+  "Costa Rica","Côte d'Ivoire","Croatia","Czech Republic","Denmark","Dominican Republic","Ecuador","Egypt",
+  "El Salvador","Estonia","Ethiopia","Finland","France","Gabon","Georgia","Germany","Ghana","Greece",
+  "Guatemala","Honduras","Hungary","India","Indonesia","Iran","Iraq","Ireland","Israel","Italy",
+  "Japan","Jordan","Kazakhstan","Kenya","Kosovo","Kuwait","Kyrgyzstan","Latvia","Lebanon","Libya",
+  "Lithuania","Luxembourg","Malaysia","Mali","Malta","Mauritania","Mauritius","Mexico","Moldova",
+  "Mongolia","Montenegro","Morocco","Mozambique","Myanmar","Namibia","Nepal","Netherlands",
+  "New Zealand","Nicaragua","Niger","Nigeria","North Macedonia","Norway","Oman","Pakistan","Panama",
+  "Paraguay","Peru","Philippines","Poland","Portugal","Qatar","Romania","Russia","Rwanda",
+  "Saudi Arabia","Senegal","Serbia","Singapore","Slovakia","Slovenia","South Africa","South Korea",
+  "Spain","Sri Lanka","Sudan","Sweden","Switzerland","Syria","Taiwan","Tanzania","Thailand",
+  "Tunisia","Turkey","Uganda","Ukraine","United Arab Emirates","United Kingdom","United States",
+  "Uruguay","Uzbekistan","Venezuela","Vietnam","Yemen","Zambia","Zimbabwe","Other",
+];
+
 const YEARS_OPTIONS = ["0-2", "3-5", "6-10", "11-15", "16+"];
 const AGE_OPTIONS = [
   { value: "<25", label: "Under 25" },
@@ -137,13 +155,16 @@ export default function OnboardingPage() {
           {/* Country */}
           <div>
             <label className="block text-sm font-semibold text-gray-800 mb-2">Country</label>
-            <input
-              type="text"
+            <select
               value={form.country}
               onChange={(e) => setForm({ ...form, country: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-              placeholder="e.g. France, Germany, United States…"
-            />
+            >
+              <option value="">Select your country…</option>
+              {COUNTRIES.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
           </div>
 
           {/* Education */}
