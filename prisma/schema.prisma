@@ -1,0 +1,399 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── ENUMS ──────────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  CANDIDATE
+  ADMIN
+  HR
+}
+
+enum JobFamily {
+  SOURCING
+  PROCUREMENT
+  LOGISTICS
+  OPERATIONS
+  SUPPLY_CHAIN
+  CONTRACT_MGMT
+  CATEGORY_MGMT
+  SUSTAINABILITY
+  STRATEGY
+}
+
+enum SeniorityLevel {
+  L1_JUNIOR
+  L2_MID
+  L3_SENIOR
+  L4_LEAD
+  L5_MANAGER
+  L6_EXECUTIVE
+}
+
+enum QuestionType {
+  MCQ
+  RANKED_CHOICE
+  SCENARIO
+  OPEN_TEXT
+}
+
+enum Dimension {
+  THEORY
+  PRACTICE
+}
+
+enum SessionStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FLAGGED
+}
+
+enum IntegrityRecommendation {
+  PASS
+  REVIEW
+  FLAG
+}
+
+enum ReviewOutcome {
+  CLEARED
+  INVALIDATED
+}
+
+// ─── ORGANIZATION ───────────────────────────────────────────────────────────────
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  domain    String?  @unique
+  logoUrl   String?
+  branding  Json?    // { primaryColor, secondaryColor, fontFamily }
+  retentionDays Int  @default(730) // data retention policy, default 2 years
+
+  users     User[]
+  campaigns Campaign[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime? // soft delete
+
+  @@map("organizations")
+}
+
+// ─── USER ───────────────────────────────────────────────────────────────────────
+
+model User {
+  id                String   @id @default(cuid())
+  email             String   @unique
+  name              String?
+  role              UserRole @default(CANDIDATE)
+  preferredLanguage String   @default("en")
+  organizationId    String?
+  emailVerified     DateTime?
+  image             String?
+
+  organization      Organization? @relation(fields: [organizationId], references: [id])
+  sessions          AssessmentSession[]
+  createdCampaigns  Campaign[]    @relation("CampaignCreator")
+  integrityReviews  IntegrityReview[]
+
+  // NextAuth fields
+  accounts          Account[]
+  nextAuthSessions  NextAuthSession[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime? // soft delete
+
+  @@map("users")
+}
+
+// ─── NEXTAUTH MODELS ────────────────────────────────────────────────────────────
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model NextAuthSession {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("next_auth_sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ─── JOB PROFILE ────────────────────────────────────────────────────────────────
+
+model JobProfile {
+  id             String         @id @default(cuid())
+  jobFamily      JobFamily
+  seniorityLevel SeniorityLevel
+  displayName    Json           // { "en": "Senior Procurement Analyst", "fr": "..." }
+  isActive       Boolean        @default(true)
+
+  questions      Question[]
+  campaigns      Campaign[]
+  sessions       AssessmentSession[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([jobFamily, seniorityLevel]) // one profile per family+level combo
+  @@map("job_profiles")
+}
+
+// ─── QUESTION ───────────────────────────────────────────────────────────────────
+
+// Design decision: one row per language per question, linked by a shared variantGroupId.
+// This makes queries simple ("give me all EN questions for this profile") without
+// needing to parse JSONB in WHERE clauses, and allows each translation to be
+// independently activated/deactivated.
+
+model Question {
+  id               String       @id @default(cuid())
+  jobProfileId     String
+  language         String       @default("en") // ISO 639-1
+  questionType     QuestionType
+  dimension        Dimension
+  domainTag        String       // e.g. "supplier-negotiation", "demand-forecasting"
+  difficultyWeight Float        @default(1.0) // 1.0–3.0
+
+  // JSON structure depends on questionType:
+  // MCQ:          { stem, options: string[], correctAnswer: number, explanation? }
+  // RANKED_CHOICE:{ stem, options: string[], correctOrder: number[] }
+  // SCENARIO:     { stem, context, rubric: { criteria: string[], maxScore: number } }
+  // OPEN_TEXT:    { stem, rubric: { criteria: string[], maxScore: number }, guidanceWordCount?: { min, max } }
+  content          Json
+
+  // Variant system: questions sharing the same variantGroupId are paraphrased
+  // alternatives. The selector picks one per group per session.
+  variantGroupId   String?
+
+  isActive         Boolean      @default(true)
+
+  jobProfile       JobProfile   @relation(fields: [jobProfileId], references: [id])
+  answers          Answer[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([jobProfileId, language, dimension, isActive])
+  @@index([variantGroupId])
+  @@index([domainTag])
+  @@map("questions")
+}
+
+// ─── CAMPAIGN ───────────────────────────────────────────────────────────────────
+
+model Campaign {
+  id               String       @id @default(cuid())
+  name             String
+  organizationId   String
+  createdByAdminId String
+  jobProfileId     String
+  startsAt         DateTime
+  endsAt           DateTime
+  inviteToken      String       @unique @default(cuid())
+  maxAttempts      Int          @default(1)
+
+  // { shuffleQuestions: bool, showFeedbackImmediately: bool,
+  //   allowedLanguages: string[], timeLimitPerQuestion?: number (seconds),
+  //   theoryPracticeRatio?: { theory: 0.4, practice: 0.6 },
+  //   totalQuestions?: number }
+  settings         Json         @default("{}")
+
+  isArchived       Boolean      @default(false)
+
+  organization     Organization @relation(fields: [organizationId], references: [id])
+  createdBy        User         @relation("CampaignCreator", fields: [createdByAdminId], references: [id])
+  jobProfile       JobProfile   @relation(fields: [jobProfileId], references: [id])
+  sessions         AssessmentSession[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([inviteToken])
+  @@map("campaigns")
+}
+
+// ─── ASSESSMENT SESSION ─────────────────────────────────────────────────────────
+
+model AssessmentSession {
+  id               String        @id @default(cuid())
+  candidateId      String
+  jobProfileId     String
+  campaignId       String
+  status           SessionStatus @default(PENDING)
+
+  startedAt        DateTime?
+  completedAt      DateTime?
+  durationSeconds  Int?
+
+  // Computed scores (null until session completes)
+  theoryScore      Float?        // 0–100
+  practiceScore    Float?        // 0–100
+  overallScore     Float?        // 0–100
+  domainScores     Json?         // { "supplier-negotiation": 72, "demand-forecasting": 58, ... }
+  percentile       Float?        // within campaign cohort, 0–100
+
+  // Integrity
+  integrityScore   Float?        // 0 (clean) – 1 (high suspicion)
+  integrityFlags   Json?         // array of flag objects
+  integrityRecommendation IntegrityRecommendation?
+
+  // Question ordering for this session (preserves the adaptive sequence)
+  questionSequence Json?         // ordered array of questionIds selected for this session
+
+  // Report
+  reportUrl        String?       // S3 URL to generated PDF
+  reportGeneratedAt DateTime?
+
+  candidate        User          @relation(fields: [candidateId], references: [id])
+  jobProfile       JobProfile    @relation(fields: [jobProfileId], references: [id])
+  campaign         Campaign      @relation(fields: [campaignId], references: [id])
+  answers          Answer[]
+  integrityReviews IntegrityReview[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime? // soft delete
+
+  @@index([candidateId])
+  @@index([campaignId])
+  @@index([status])
+  @@map("assessment_sessions")
+}
+
+// ─── ANSWER ─────────────────────────────────────────────────────────────────────
+
+model Answer {
+  id               String   @id @default(cuid())
+  sessionId        String
+  questionId       String
+
+  rawAnswer        String?  @db.Text  // free-text for OPEN_TEXT / SCENARIO
+  selectedOptions  Int[]              // for MCQ / RANKED_CHOICE
+
+  // Scoring
+  autoScore        Float?   // machine-scored (MCQ, ranked)
+  llmScore         Float?   // Claude-scored (open text, scenario)
+  finalScore       Float?   // resolved score used in aggregation
+
+  llmFeedback      String?  @db.Text  // qualitative feedback in candidate's language
+  llmScoringData   Json?    // full structured response from Claude (cached)
+
+  timeSpentSeconds Int?
+
+  // Anti-cheat signals
+  keystrokeCadenceData Json?  // compact array of inter-key intervals
+  pastedCharCount      Int    @default(0)
+  focusLossCount       Int    @default(0)
+  focusLossDuration    Int    @default(0) // total seconds out of focus on this question
+
+  submittedAt      DateTime?
+
+  session          AssessmentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  question         Question          @relation(fields: [questionId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([sessionId, questionId]) // one answer per question per session
+  @@index([sessionId])
+  @@map("answers")
+}
+
+// ─── INTEGRITY REVIEW ───────────────────────────────────────────────────────────
+// HR/Admin manual review of flagged sessions
+
+model IntegrityReview {
+  id        String        @id @default(cuid())
+  sessionId String
+  reviewerId String
+  outcome   ReviewOutcome
+  note      String?       @db.Text
+
+  session   AssessmentSession @relation(fields: [sessionId], references: [id])
+  reviewer  User              @relation(fields: [reviewerId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([sessionId])
+  @@map("integrity_reviews")
+}
+
+// ─── LLM RESPONSE CACHE ────────────────────────────────────────────────────────
+// Ensures we never call the Claude API twice for the same answer content.
+// Keyed by a hash of (questionId + rawAnswer + language).
+
+model LlmCache {
+  id           String @id @default(cuid())
+  cacheKey     String @unique // SHA-256 of input payload
+  response     Json   // full structured Claude response
+  modelVersion String // e.g. "claude-sonnet-4-20250514"
+  tokenCount   Int?   // for cost tracking
+
+  createdAt DateTime @default(now())
+  expiresAt DateTime? // optional TTL
+
+  @@map("llm_cache")
+}
+
+// ─── JOB QUEUE ──────────────────────────────────────────────────────────────────
+// Lightweight job queue table for report generation, email sending, etc.
+// Can be replaced by pg-boss or Bull later; this keeps us dependency-light initially.
+
+model JobQueue {
+  id        String   @id @default(cuid())
+  type      String   // "GENERATE_REPORT" | "SEND_EMAIL" | "COMPUTE_COHORT"
+  payload   Json
+  status    String   @default("PENDING") // PENDING | PROCESSING | COMPLETED | FAILED
+  attempts  Int      @default(0)
+  maxAttempts Int    @default(3)
+  error     String?  @db.Text
+  lockedAt  DateTime?
+  lockedBy  String?  // worker instance ID
+
+  createdAt   DateTime @default(now())
+  completedAt DateTime?
+
+  @@index([type, status])
+  @@index([lockedAt])
+  @@map("job_queue")
+}
