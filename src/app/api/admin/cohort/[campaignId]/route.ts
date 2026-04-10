@@ -8,9 +8,10 @@ const log = logger.child({ route: "admin/cohort" });
 // GET — cohort analytics for a campaign
 export async function GET(
   req: NextRequest,
-  { params }: { params: { campaignId: string } },
+  { params }: { params: Promise<{ campaignId: string }> },
 ) {
   try {
+    const { campaignId } = await params;
     const session = await getSession();
     if (!session?.user || !["ADMIN", "HR"].includes(session.user.role)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
@@ -20,7 +21,7 @@ export async function GET(
     const anonymize = url.searchParams.get("anonymize") === "true";
 
     const campaign = await prisma.campaign.findUnique({
-      where: { id: params.campaignId },
+      where: { id: campaignId },
       include: { jobProfile: true },
     });
 
@@ -29,7 +30,7 @@ export async function GET(
     }
 
     const sessions = await prisma.assessmentSession.findMany({
-      where: { campaignId: params.campaignId, status: "COMPLETED", deletedAt: null },
+      where: { campaignId: campaignId, status: "COMPLETED", deletedAt: null },
       include: {
         candidate: { select: { name: true, email: true } },
         jobProfile: { select: { seniorityLevel: true } },
@@ -38,7 +39,7 @@ export async function GET(
     });
 
     const totalInvited = await prisma.assessmentSession.count({
-      where: { campaignId: params.campaignId, deletedAt: null },
+      where: { campaignId: campaignId, deletedAt: null },
     });
 
     // Score distribution (buckets of 10)

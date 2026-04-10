@@ -8,9 +8,10 @@ const log = logger.child({ route: "GET /api/reports/[sessionId]" });
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { sessionId: string } },
+  { params }: { params: Promise<{ sessionId: string }> },
 ) {
   try {
+    const { sessionId } = await params;
     const session = await getSession();
     if (!session?.user) {
       return NextResponse.json({ error: "Authentication required" }, { status: 401 });
@@ -18,7 +19,7 @@ export async function GET(
 
     // Check ownership: candidate can see their own, ADMIN/HR can see any in their org
     const assessmentSession = await prisma.assessmentSession.findUnique({
-      where: { id: params.sessionId },
+      where: { id: sessionId },
       select: {
         candidateId: true,
         campaign: { select: { organizationId: true } },
@@ -38,7 +39,7 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    const report = await generateCandidateReport(params.sessionId);
+    const report = await generateCandidateReport(sessionId);
 
     return NextResponse.json(report);
   } catch (error: any) {

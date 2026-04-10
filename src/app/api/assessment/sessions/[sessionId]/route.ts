@@ -9,16 +9,17 @@ const log = logger.child({ route: "assessment/sessions/[sessionId]" });
 // GET — fetch session state
 export async function GET(
   req: NextRequest,
-  { params }: { params: { sessionId: string } },
+  { params }: { params: Promise<{ sessionId: string }> },
 ) {
   try {
+    const { sessionId } = await params;
     const session = await getSession();
     if (!session?.user) {
       return NextResponse.json({ error: "Authentication required" }, { status: 401 });
     }
 
     const assessmentSession = await prisma.assessmentSession.findUnique({
-      where: { id: params.sessionId },
+      where: { id: sessionId },
       include: {
         campaign: {
           select: { name: true, settings: true },
@@ -38,7 +39,7 @@ export async function GET(
     }
 
     const answeredCount = await prisma.answer.count({
-      where: { sessionId: params.sessionId, submittedAt: { not: null } },
+      where: { sessionId, submittedAt: { not: null } },
     });
 
     const totalQuestions = (assessmentSession.questionSequence as string[])?.length ?? 0;
@@ -62,9 +63,10 @@ export async function GET(
 // PATCH — start the session
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { sessionId: string } },
+  { params }: { params: Promise<{ sessionId: string }> },
 ) {
   try {
+    const { sessionId } = await params;
     const session = await getSession();
     if (!session?.user) {
       return NextResponse.json({ error: "Authentication required" }, { status: 401 });
@@ -73,7 +75,7 @@ export async function PATCH(
     const body = await req.json();
 
     if (body.action === "start") {
-      const updated = await startSession(params.sessionId, session.user.id);
+      const updated = await startSession(sessionId, session.user.id);
       return NextResponse.json({ status: updated.status, startedAt: updated.startedAt });
     }
 

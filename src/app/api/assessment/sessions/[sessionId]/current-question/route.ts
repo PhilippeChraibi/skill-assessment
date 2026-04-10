@@ -7,15 +7,16 @@ const log = logger.child({ route: "current-question" });
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { sessionId: string } },
+  { params }: { params: Promise<{ sessionId: string }> },
 ) {
   try {
+    const { sessionId } = await params;
     const session = await getSession();
     if (!session?.user) {
       return NextResponse.json({ error: "Authentication required" }, { status: 401 });
     }
 
-    const result = await getCurrentQuestion(params.sessionId, session.user.id);
+    const result = await getCurrentQuestion(sessionId, session.user.id);
 
     if (result.done) {
       return NextResponse.json({

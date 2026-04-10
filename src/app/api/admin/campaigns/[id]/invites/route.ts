@@ -8,16 +8,17 @@ const log = logger.child({ route: "admin/campaigns/[id]/invites" });
 // POST — generate invite links (bulk from email CSV)
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const { id } = await params;
     const session = await getSession();
     if (!session?.user || !["ADMIN", "HR"].includes(session.user.role)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
     const campaign = await prisma.campaign.findUnique({
-      where: { id: params.id },
+      where: { id },
       select: { inviteToken: true, name: true },
     });
 

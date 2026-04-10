@@ -8,9 +8,10 @@ const log = logger.child({ route: "admin/sessions/review" });
 // POST — submit integrity review decision
 export async function POST(
   req: NextRequest,
-  { params }: { params: { sessionId: string } },
+  { params }: { params: Promise<{ sessionId: string }> },
 ) {
   try {
+    const { sessionId } = await params;
     const session = await getSession();
     if (!session?.user || !["ADMIN", "HR"].includes(session.user.role)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
@@ -25,7 +26,7 @@ export async function POST(
 
     const review = await prisma.integrityReview.create({
       data: {
-        sessionId: params.sessionId,
+        sessionId: sessionId,
         reviewerId: session.user.id,
         outcome,
         note: note ?? null,
@@ -35,13 +36,13 @@ export async function POST(
     // Update session status based on review
     if (outcome === "INVALIDATED") {
       await prisma.assessmentSession.update({
-        where: { id: params.sessionId },
+        where: { id: sessionId },
         data: { status: "FLAGGED" },
       });
     }
 
     log.info(
-      { sessionId: params.sessionId, outcome, reviewerId: session.user.id },
+      { sessionId: sessionId, outcome, reviewerId: session.user.id },
       "Integrity review submitted",
     );
 

@@ -8,9 +8,10 @@ const log = logger.child({ route: "submit-answer" });
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { sessionId: string } },
+  { params }: { params: Promise<{ sessionId: string }> },
 ) {
   try {
+    const { sessionId } = await params;
     const session = await getSession();
     if (!session?.user) {
       return NextResponse.json({ error: "Authentication required" }, { status: 401 });
@@ -38,7 +39,7 @@ export async function POST(
     }
 
     const answer = await submitAnswer({
-      sessionId: params.sessionId,
+      sessionId,
       candidateId: session.user.id,
       questionId,
       rawAnswer,

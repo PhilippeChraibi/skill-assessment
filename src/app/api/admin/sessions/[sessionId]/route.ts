@@ -5,16 +5,17 @@ import { prisma } from "@/lib/db";
 // GET — full session detail for admin review
 export async function GET(
   req: NextRequest,
-  { params }: { params: { sessionId: string } },
+  { params }: { params: Promise<{ sessionId: string }> },
 ) {
   try {
+    const { sessionId } = await params;
     const session = await getSession();
     if (!session?.user || !["ADMIN", "HR"].includes(session.user.role)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
     const assessmentSession = await prisma.assessmentSession.findUnique({
-      where: { id: params.sessionId },
+      where: { id: sessionId },
       include: {
         candidate: { select: { name: true, email: true, preferredLanguage: true } },
         jobProfile: true,

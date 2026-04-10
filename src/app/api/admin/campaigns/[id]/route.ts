@@ -8,16 +8,17 @@ const log = logger.child({ route: "admin/campaigns/[id]" });
 // GET — single campaign with stats
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const { id } = await params;
     const session = await getSession();
     if (!session?.user || !["ADMIN", "HR"].includes(session.user.role)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
     const campaign = await prisma.campaign.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         jobProfile: true,
         createdBy: { select: { name: true, email: true } },
@@ -45,9 +46,10 @@ export async function GET(
 // PATCH — update campaign
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const { id } = await params;
     const session = await getSession();
     if (!session?.user || !["ADMIN", "HR"].includes(session.user.role)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
@@ -56,7 +58,7 @@ export async function PATCH(
     const body = await req.json();
 
     const campaign = await prisma.campaign.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         name: body.name,
         startsAt: body.startsAt ? new Date(body.startsAt) : undefined,

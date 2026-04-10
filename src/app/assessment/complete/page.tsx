@@ -2,6 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import Link from "next/link";
 
 function CompletionContent() {
   const searchParams = useSearchParams();
@@ -60,13 +61,13 @@ function CompletionContent() {
             </>
           )}
 
-          <a
+          <Link
             href="/"
             className="inline-block px-6 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium
                        hover:bg-gray-200 transition-colors"
           >
             Return to Home
-          </a>
+          </Link>
         </div>
       </div>
     </div>

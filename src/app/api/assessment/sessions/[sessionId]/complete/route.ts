@@ -7,15 +7,16 @@ const log = logger.child({ route: "complete-session" });
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { sessionId: string } },
+  { params }: { params: Promise<{ sessionId: string }> },
 ) {
   try {
+    const { sessionId } = await params;
     const session = await getSession();
     if (!session?.user) {
       return NextResponse.json({ error: "Authentication required" }, { status: 401 });
     }
 
-    const completed = await completeSession(params.sessionId, session.user.id);
+    const completed = await completeSession(sessionId, session.user.id);
 
     return NextResponse.json({
       status: completed.status,
