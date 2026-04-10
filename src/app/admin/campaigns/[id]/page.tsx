@@ -12,6 +12,7 @@ export default function CampaignDetailPage() {
   const [loading, setLoading] = useState(true);
   const [emails, setEmails] = useState("");
   const [inviting, setInviting] = useState(false);
+  const [inviteResult, setInviteResult] = useState<{ ok: boolean; message: string } | null>(null);
 
   useEffect(() => {
     fetch(`/api/admin/campaigns/${id}`)
@@ -29,18 +30,30 @@ export default function CampaignDetailPage() {
 
   const handleBulkInvite = async () => {
     setInviting(true);
+    setInviteResult(null);
     const emailList = emails
       .split(/[,\n]/)
       .map((e: string) => e.trim())
       .filter(Boolean);
 
-    await fetch(`/api/admin/campaigns/${id}/invites`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ emails: emailList }),
-    });
+    try {
+      const res = await fetch(`/api/admin/campaigns/${id}/invites`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ emails: emailList }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setInviteResult({ ok: false, message: data.error ?? "Failed to send invites." });
+      } else {
+        const count = data.count ?? emailList.length;
+        setInviteResult({ ok: true, message: `${count} account${count !== 1 ? "s" : ""} created and invite email${count !== 1 ? "s" : ""} sent successfully.` });
+        setEmails("");
+      }
+    } catch {
+      setInviteResult({ ok: false, message: "Network error. Please try again." });
+    }
     setInviting(false);
-    setEmails("");
   };
 
   const handleArchive = async () => {
@@ -133,6 +146,11 @@ export default function CampaignDetailPage() {
           >
             {inviting ? "Sending..." : "Create Candidate Accounts"}
           </button>
+          {inviteResult && (
+            <p className={`mt-2 text-sm ${inviteResult.ok ? "text-green-600" : "text-red-600"}`}>
+              {inviteResult.ok ? "✓ " : "✗ "}{inviteResult.message}
+            </p>
+          )}
         </div>
       </div>
 
