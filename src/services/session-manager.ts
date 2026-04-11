@@ -253,7 +253,10 @@ export async function completeSession(
   if (session.candidateId !== candidateId) throw new Error("Unauthorized");
   if (session.status !== "IN_PROGRESS") throw new Error("Session is not in progress");
 
-  const seniorityLevel = session.campaign.jobProfile.seniorityLevel;
+  // Build a human-readable band label for AI scoring context
+  const profile = session.campaign.jobProfile;
+  const bandLabel = `${profile.bandLabel} (Band ${profile.band}) – ${profile.track.replace(/_/g, " ")}`;
+
   const candidate = await prisma.user.findUnique({
     where: { id: candidateId },
     select: { preferredLanguage: true },
@@ -265,7 +268,7 @@ export async function completeSession(
     const result = await scoreAnswer(
       answer,
       answer.question,
-      seniorityLevel,
+      bandLabel,
       language,
     );
 

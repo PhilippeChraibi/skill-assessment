@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 
 interface JobProfile {
   id: string;
-  jobFamily: string;
-  seniorityLevel: string;
+  track: string;
+  band: number;
+  bandLabel: string;
   displayName: Record<string, string>;
 }
 
@@ -102,7 +103,7 @@ export default function NewCampaignPage() {
             <option value="">Select a profile...</option>
             {profiles.map((p) => (
               <option key={p.id} value={p.id}>
-                {p.displayName?.en ?? p.jobFamily} — {p.seniorityLevel.replace(/_/g, " ")}
+                {p.displayName?.en ?? p.track.replace(/_/g, " ")} — Band {p.band} ({p.bandLabel})
               </option>
             ))}
           </select>

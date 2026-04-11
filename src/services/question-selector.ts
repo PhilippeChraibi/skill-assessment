@@ -1,17 +1,27 @@
 import { prisma } from "@/lib/db";
 import { logger } from "@/lib/logger";
-import { Question, Dimension, QuestionType } from "@prisma/client";
+import { Dimension, QuestionType } from "@prisma/client";
 import type { CampaignSettings } from "@/types";
+
+// Question enriched with the profile-specific difficulty weight from the junction table
+type QuestionWithWeight = {
+  id: string;
+  language: string;
+  questionType: QuestionType;
+  dimension: Dimension;
+  domainTag: string;
+  difficultyWeight: number; // effective weight (profile override or base)
+  content: unknown;
+  variantGroupId: string | null;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+};
 
 interface QuestionSelectionInput {
   jobProfileId: string;
   language: string;
   campaignSettings: CampaignSettings;
-}
-
-interface SelectedQuestion {
-  question: Question;
-  estimatedDifficulty: number;
 }
 
 // Simple 3-Parameter Logistic (3PL) IRT model
@@ -72,12 +82,12 @@ export function updateTheta(
 
 // Select the next best question given current theta
 function selectBestQuestion(
-  candidates: Question[],
+  candidates: QuestionWithWeight[],
   theta: number,
-): Question | null {
+): QuestionWithWeight | null {
   if (candidates.length === 0) return null;
 
-  let best: Question | null = null;
+  let best: QuestionWithWeight | null = null;
   let bestInfo = -Infinity;
 
   for (const q of candidates) {
@@ -104,9 +114,9 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 // Pick one question per variant group (random selection among variants)
-function deduplicateVariants(questions: Question[]): Question[] {
-  const grouped = new Map<string, Question[]>();
-  const standalone: Question[] = [];
+function deduplicateVariants(questions: QuestionWithWeight[]): QuestionWithWeight[] {
+  const grouped = new Map<string, QuestionWithWeight[]>();
+  const standalone: QuestionWithWeight[] = [];
 
   for (const q of questions) {
     if (q.variantGroupId) {
@@ -118,7 +128,7 @@ function deduplicateVariants(questions: Question[]): Question[] {
     }
   }
 
-  const deduplicated: Question[] = [...standalone];
+  const deduplicated: QuestionWithWeight[] = [...standalone];
   for (const variants of grouped.values()) {
     const pick = variants[Math.floor(Math.random() * variants.length)];
     deduplicated.push(pick);
@@ -129,7 +139,7 @@ function deduplicateVariants(questions: Question[]): Question[] {
 
 export async function selectQuestions(
   input: QuestionSelectionInput,
-): Promise<Question[]> {
+): Promise<QuestionWithWeight[]> {
   const { jobProfileId, language, campaignSettings } = input;
   const totalQuestions = campaignSettings.totalQuestions ?? 15;
   const ratio = campaignSettings.theoryPracticeRatio ?? { theory: 0.4, practice: 0.6 };
@@ -138,14 +148,20 @@ export async function selectQuestions(
 
   const log = logger.child({ service: "question-selector", jobProfileId, language });
 
-  // Fetch all active questions for this profile + language
-  const allQuestions = await prisma.question.findMany({
+  // Fetch all active questions mapped to this profile via the junction table.
+  // Use the profile-specific difficultyWeight override if set.
+  const mappings = await prisma.profileQuestion.findMany({
     where: {
-      jobProfileId,
-      language,
-      isActive: true,
+      profileId: jobProfileId,
+      question: { isActive: true, language },
     },
+    include: { question: true },
   });
+
+  const allQuestions: QuestionWithWeight[] = mappings.map((m) => ({
+    ...m.question,
+    difficultyWeight: m.difficultyWeight ?? m.question.difficultyWeight,
+  }));
 
   log.info({ totalAvailable: allQuestions.length }, "Fetched question pool");
 
@@ -205,11 +221,11 @@ export async function selectQuestions(
 
 // Select N questions from a pool using adaptive IRT-based selection
 function selectAdaptiveSet(
-  pool: Question[],
+  pool: QuestionWithWeight[],
   count: number,
   initialTheta: number,
-): Question[] {
-  const selected: Question[] = [];
+): QuestionWithWeight[] {
+  const selected: QuestionWithWeight[] = [];
   let remaining = [...pool];
   let theta = initialTheta;
 
@@ -246,16 +262,24 @@ export async function selectNextQuestion(
   currentTheta: number,
   answeredQuestionIds: string[],
   requiredDimension?: Dimension,
-): Promise<Question | null> {
-  const pool = await prisma.question.findMany({
+): Promise<QuestionWithWeight | null> {
+  const mappings = await prisma.profileQuestion.findMany({
     where: {
-      jobProfileId,
-      language,
-      isActive: true,
-      id: { notIn: answeredQuestionIds },
-      ...(requiredDimension ? { dimension: requiredDimension } : {}),
+      profileId: jobProfileId,
+      question: {
+        isActive: true,
+        language,
+        id: { notIn: answeredQuestionIds },
+        ...(requiredDimension ? { dimension: requiredDimension } : {}),
+      },
     },
+    include: { question: true },
   });
+
+  const pool: QuestionWithWeight[] = mappings.map((m) => ({
+    ...m.question,
+    difficultyWeight: m.difficultyWeight ?? m.question.difficultyWeight,
+  }));
 
   const deduplicated = deduplicateVariants(pool);
   return selectBestQuestion(deduplicated, currentTheta);

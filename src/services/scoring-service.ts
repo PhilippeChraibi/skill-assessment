@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { logger } from "@/lib/logger";
-import { QuestionType, SeniorityLevel, Answer, Question } from "@prisma/client";
+import { QuestionType, Answer, Question } from "@prisma/client";
 import type { McqContent, RankedChoiceContent, LlmScoringResponse } from "@/types";
 import { createHash } from "crypto";
 
@@ -64,7 +64,7 @@ export async function scoreLlm(
   questionId: string,
   questionContent: { stem: string; rubric: { criteria: string[]; maxScore: number } },
   rawAnswer: string,
-  seniorityLevel: SeniorityLevel,
+  bandLabel: string,
   language: string,
 ): Promise<LlmScoringResponse> {
   const cacheKey = buildCacheKey(questionId, rawAnswer, language);
@@ -81,7 +81,7 @@ export async function scoreLlm(
   const response = await callClaudeForScoring(
     questionContent,
     rawAnswer,
-    seniorityLevel,
+    bandLabel,
     language,
   );
 
@@ -100,7 +100,7 @@ export async function scoreLlm(
 async function callClaudeForScoring(
   questionContent: { stem: string; rubric: { criteria: string[]; maxScore: number } },
   rawAnswer: string,
-  seniorityLevel: SeniorityLevel,
+  bandLabel: string,
   language: string,
 ): Promise<LlmScoringResponse> {
   const languageNames: Record<string, string> = {
@@ -113,7 +113,7 @@ async function callClaudeForScoring(
   };
 
   const systemPrompt = `You are an expert assessment evaluator for procurement and supply chain professionals.
-You evaluate answers at the ${seniorityLevel.replace("_", " ")} seniority level.
+You evaluate answers at the ${bandLabel} level.
 Provide your feedback in ${languageNames[language] ?? "English"}.
 Be fair, constructive, and specific. Reference industry best practices where relevant.`;
 
@@ -264,7 +264,7 @@ function computeWeightedAverage(answers: AnswerWithQuestion[]): number {
 export async function scoreAnswer(
   answer: Answer,
   question: Question,
-  seniorityLevel: SeniorityLevel,
+  bandLabel: string,
   language: string,
 ): Promise<{ autoScore?: number; llmScore?: number; finalScore: number; llmFeedback?: string; llmScoringData?: LlmScoringResponse }> {
   const content = question.content as Record<string, unknown>;
@@ -298,7 +298,7 @@ export async function scoreAnswer(
         question.id,
         content as { stem: string; rubric: { criteria: string[]; maxScore: number } },
         answer.rawAnswer,
-        seniorityLevel,
+        bandLabel,
         language,
       );
 

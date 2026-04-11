@@ -15,7 +15,7 @@ interface QuestionRow {
   variantCount: number;
   needsMoreVariants: boolean;
   content: { stem?: string };
-  jobProfile: { jobFamily: string; seniorityLevel: string };
+  profiles: { profileId: string; profile: { track: string; band: number } }[];
 }
 
 export default function QuestionsPage() {

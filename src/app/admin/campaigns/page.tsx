@@ -11,7 +11,7 @@ interface Campaign {
   endsAt: string;
   isArchived: boolean;
   maxAttempts: number;
-  jobProfile: { jobFamily: string; seniorityLevel: string; displayName: Record<string, string> };
+  jobProfile: { track: string; band: number; bandLabel: string; displayName: Record<string, string> };
   createdBy: { name: string | null; email: string };
   _count: { sessions: number };
   completedCount: number;
@@ -76,7 +76,7 @@ export default function CampaignsPage() {
                       <div className="text-xs text-gray-400">by {c.createdBy.name ?? c.createdBy.email}</div>
                     </td>
                     <td className="px-4 py-3 text-gray-600">
-                      {c.jobProfile.jobFamily} / {c.jobProfile.seniorityLevel.replace(/_/g, " ")}
+                      {c.jobProfile.displayName?.en ?? c.jobProfile.track.replace(/_/g, " ")} — Band {c.jobProfile.band}
                     </td>
                     <td className="px-4 py-3 text-gray-600">
                       <div>{new Date(c.startsAt).toLocaleDateString()}</div>

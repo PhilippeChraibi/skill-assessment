@@ -5,7 +5,7 @@ import { logger } from "@/lib/logger";
 
 const log = logger.child({ route: "admin/questions/[id]" });
 
-// GET — single question
+// GET — single question with profile assignments
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -19,7 +19,15 @@ export async function GET(
 
     const question = await prisma.question.findUnique({
       where: { id },
-      include: { jobProfile: true },
+      include: {
+        profiles: {
+          include: {
+            profile: {
+              select: { id: true, track: true, band: true, displayName: true, bandLabel: true },
+            },
+          },
+        },
+      },
     });
 
     if (!question) {
@@ -45,7 +53,7 @@ export async function GET(
   }
 }
 
-// PATCH — update question
+// PATCH — update question fields and/or profile assignments
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -59,6 +67,22 @@ export async function PATCH(
 
     const body = await req.json();
 
+    // Handle profile assignment add/remove separately
+    if (body.addProfile) {
+      const { profileId, difficultyWeight, proficiencyTarget } = body.addProfile;
+      await prisma.profileQuestion.upsert({
+        where: { profileId_questionId: { profileId, questionId: id } },
+        create: { profileId, questionId: id, difficultyWeight: difficultyWeight ?? 1.5, proficiencyTarget: proficiencyTarget ?? "P" },
+        update: { difficultyWeight: difficultyWeight ?? undefined, proficiencyTarget: proficiencyTarget ?? undefined },
+      });
+    }
+
+    if (body.removeProfile) {
+      await prisma.profileQuestion.deleteMany({
+        where: { profileId: body.removeProfile, questionId: id },
+      });
+    }
+
     const question = await prisma.question.update({
       where: { id },
       data: {
@@ -70,6 +94,15 @@ export async function PATCH(
         isActive: body.isActive,
         variantGroupId: body.variantGroupId,
         language: body.language,
+      },
+      include: {
+        profiles: {
+          include: {
+            profile: {
+              select: { id: true, track: true, band: true, displayName: true, bandLabel: true },
+            },
+          },
+        },
       },
     });
 

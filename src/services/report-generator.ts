@@ -9,8 +9,9 @@ export interface CandidateReport {
   candidateEmail: string;
   sessionId: string;
   assessmentDate: string;
-  jobFamily: string;
-  seniorityLevel: string;
+  track: string;
+  band: number;
+  bandLabel: string;
   jobProfileDisplayName: string;
 
   overallScore: number;
@@ -55,6 +56,8 @@ export async function generateCandidateReport(sessionId: string): Promise<Candid
 
   const displayName = session.jobProfile.displayName as Record<string, string>;
   const language = session.candidate.preferredLanguage ?? "en";
+  const profileDisplayName = displayName[language] ?? displayName.en ?? session.jobProfile.bandLabel;
+  const bandLabel = `${session.jobProfile.bandLabel} (Band ${session.jobProfile.band}) – ${session.jobProfile.track.replace(/_/g, " ")}`;
 
   // Build per-question feedback (only for open-text/scenario)
   const questionFeedback = session.answers
@@ -85,9 +88,9 @@ export async function generateCandidateReport(sessionId: string): Promise<Candid
   const { summary, strengths, developmentAreas } = await generateNarrativeSummary(
     allFeedback,
     session.overallScore ?? 0,
-    session.domainScores as Record<string, number> ?? {},
-    displayName[language] ?? displayName.en ?? session.jobProfile.jobFamily,
-    session.jobProfile.seniorityLevel,
+    (session.domainScores as Record<string, number>) ?? {},
+    profileDisplayName,
+    bandLabel,
     language,
   );
 
@@ -117,9 +120,10 @@ export async function generateCandidateReport(sessionId: string): Promise<Candid
     candidateEmail: session.candidate.email,
     sessionId: session.id,
     assessmentDate: session.completedAt?.toISOString() ?? new Date().toISOString(),
-    jobFamily: session.jobProfile.jobFamily,
-    seniorityLevel: session.jobProfile.seniorityLevel,
-    jobProfileDisplayName: displayName[language] ?? displayName.en ?? session.jobProfile.jobFamily,
+    track: session.jobProfile.track,
+    band: session.jobProfile.band,
+    bandLabel: session.jobProfile.bandLabel,
+    jobProfileDisplayName: profileDisplayName,
 
     overallScore: session.overallScore ?? 0,
     theoryScore: session.theoryScore ?? 0,
@@ -147,7 +151,7 @@ async function generateNarrativeSummary(
   overallScore: number,
   domainScores: Record<string, number>,
   profileName: string,
-  seniorityLevel: string,
+  bandLabel: string,
   language: string,
 ): Promise<{ summary: string; strengths: string[]; developmentAreas: string[] }> {
   const languageNames: Record<string, string> = {
@@ -172,7 +176,7 @@ async function generateNarrativeSummary(
     .map(([k, v]) => `${k}: ${v.toFixed(1)}`)
     .join(", ");
 
-  const prompt = `You are writing a professional assessment report for a ${profileName} (${seniorityLevel.replace(/_/g, " ")}).
+  const prompt = `You are writing a professional assessment report for a ${profileName} (${bandLabel}).
 Overall score: ${overallScore.toFixed(1)}/100.
 Domain scores: ${domainSummary}.
 

@@ -2,6 +2,218 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth-utils";
 import { prisma } from "@/lib/db";
 
+const BAND_LABELS: Record<number, string> = {
+  1: "Foundational",
+  2: "Practitioner",
+  3: "Advanced Practitioner",
+  4: "Manager",
+  5: "Senior Leader",
+};
+
+const PROFILES = [
+  // ─── DIRECT PROCUREMENT (Private) ────────────────────────────────────────────
+  {
+    track: "DIRECT_PROCUREMENT" as const,
+    band: 1,
+    sector: "PRIVATE" as const,
+    displayName: { en: "Junior Direct Buyer", fr: "Acheteur Direct Junior" },
+    typicalTitles: ["Junior Buyer", "Procurement Assistant", "Sourcing Analyst"],
+    typicalYears: "0–2 years",
+  },
+  {
+    track: "DIRECT_PROCUREMENT" as const,
+    band: 2,
+    sector: "PRIVATE" as const,
+    displayName: { en: "Direct Buyer", fr: "Acheteur Direct" },
+    typicalTitles: ["Buyer", "Sourcing Specialist", "Procurement Analyst"],
+    typicalYears: "2–5 years",
+  },
+  {
+    track: "DIRECT_PROCUREMENT" as const,
+    band: 3,
+    sector: "PRIVATE" as const,
+    displayName: { en: "Senior Direct Buyer", fr: "Acheteur Direct Senior" },
+    typicalTitles: ["Senior Buyer", "Lead Buyer", "Strategic Sourcing Specialist"],
+    typicalYears: "5–8 years",
+  },
+  {
+    track: "DIRECT_PROCUREMENT" as const,
+    band: 4,
+    sector: "PRIVATE" as const,
+    displayName: { en: "Direct Procurement Manager", fr: "Responsable Achats Directs" },
+    typicalTitles: ["Procurement Manager", "Sourcing Manager", "Category Manager – Direct"],
+    typicalYears: "8–12 years",
+  },
+  {
+    track: "DIRECT_PROCUREMENT" as const,
+    band: 5,
+    sector: "PRIVATE" as const,
+    displayName: { en: "Head of Direct Procurement", fr: "Directeur des Achats Directs" },
+    typicalTitles: ["Head of Procurement", "VP Procurement", "Director of Strategic Sourcing"],
+    typicalYears: "12+ years",
+  },
+
+  // ─── INDIRECT PROCUREMENT (Private) ──────────────────────────────────────────
+  {
+    track: "INDIRECT_PROCUREMENT" as const,
+    band: 1,
+    sector: "PRIVATE" as const,
+    displayName: { en: "Junior Indirect Buyer", fr: "Acheteur Indirect Junior" },
+    typicalTitles: ["Junior Buyer – Indirect", "Purchasing Assistant", "Procurement Coordinator"],
+    typicalYears: "0–2 years",
+  },
+  {
+    track: "INDIRECT_PROCUREMENT" as const,
+    band: 2,
+    sector: "PRIVATE" as const,
+    displayName: { en: "Indirect Buyer", fr: "Acheteur Indirect" },
+    typicalTitles: ["Indirect Buyer", "Buyer – Services & Capex", "Procurement Specialist"],
+    typicalYears: "2–5 years",
+  },
+  {
+    track: "INDIRECT_PROCUREMENT" as const,
+    band: 3,
+    sector: "PRIVATE" as const,
+    displayName: { en: "Senior Indirect Buyer", fr: "Acheteur Indirect Senior" },
+    typicalTitles: ["Senior Indirect Buyer", "Lead Buyer – Indirect", "Services Category Specialist"],
+    typicalYears: "5–8 years",
+  },
+  {
+    track: "INDIRECT_PROCUREMENT" as const,
+    band: 4,
+    sector: "PRIVATE" as const,
+    displayName: { en: "Indirect Procurement Manager", fr: "Responsable Achats Indirects" },
+    typicalTitles: ["Indirect Procurement Manager", "Category Manager – Indirect", "Purchasing Manager"],
+    typicalYears: "8–12 years",
+  },
+  {
+    track: "INDIRECT_PROCUREMENT" as const,
+    band: 5,
+    sector: "PRIVATE" as const,
+    displayName: { en: "Head of Indirect Procurement", fr: "Directeur des Achats Indirects" },
+    typicalTitles: ["Head of Indirect Procurement", "VP Indirect Procurement", "Director of Indirect Spend"],
+    typicalYears: "12+ years",
+  },
+
+  // ─── PUBLIC PROCUREMENT (Public) ──────────────────────────────────────────────
+  {
+    track: "PUBLIC_PROCUREMENT" as const,
+    band: 1,
+    sector: "PUBLIC" as const,
+    displayName: { en: "Public Procurement Officer I", fr: "Agent des Marchés Publics I" },
+    typicalTitles: ["Procurement Officer", "Contracting Officer I", "Public Buyer"],
+    typicalYears: "0–2 years",
+  },
+  {
+    track: "PUBLIC_PROCUREMENT" as const,
+    band: 2,
+    sector: "PUBLIC" as const,
+    displayName: { en: "Public Procurement Officer II", fr: "Agent des Marchés Publics II" },
+    typicalTitles: ["Senior Procurement Officer", "Contracting Officer II", "Tender Specialist"],
+    typicalYears: "2–5 years",
+  },
+  {
+    track: "PUBLIC_PROCUREMENT" as const,
+    band: 3,
+    sector: "PUBLIC" as const,
+    displayName: { en: "Senior Public Procurement Officer", fr: "Agent des Marchés Publics Senior" },
+    typicalTitles: ["Senior Contracting Officer", "Lead Procurement Officer", "Public Sourcing Specialist"],
+    typicalYears: "5–8 years",
+  },
+  {
+    track: "PUBLIC_PROCUREMENT" as const,
+    band: 4,
+    sector: "PUBLIC" as const,
+    displayName: { en: "Public Procurement Manager", fr: "Responsable des Marchés Publics" },
+    typicalTitles: ["Procurement Manager", "Contracting Manager", "Head of Tendering"],
+    typicalYears: "8–12 years",
+  },
+  {
+    track: "PUBLIC_PROCUREMENT" as const,
+    band: 5,
+    sector: "PUBLIC" as const,
+    displayName: { en: "Head of Public Procurement", fr: "Directeur des Achats Publics" },
+    typicalTitles: ["Head of Procurement", "Director of Public Contracts", "Chief Procurement Officer (Public)"],
+    typicalYears: "12+ years",
+  },
+
+  // ─── SUPPLY CHAIN (Private) ────────────────────────────────────────────────────
+  {
+    track: "SUPPLY_CHAIN" as const,
+    band: 1,
+    sector: "PRIVATE" as const,
+    displayName: { en: "Supply Chain Coordinator", fr: "Coordinateur Chaîne d'Approvisionnement" },
+    typicalTitles: ["Supply Chain Coordinator", "Logistics Assistant", "Inventory Analyst"],
+    typicalYears: "0–2 years",
+  },
+  {
+    track: "SUPPLY_CHAIN" as const,
+    band: 2,
+    sector: "PRIVATE" as const,
+    displayName: { en: "Supply Chain Analyst", fr: "Analyste Chaîne d'Approvisionnement" },
+    typicalTitles: ["Supply Chain Analyst", "Planning Analyst", "Logistics Specialist"],
+    typicalYears: "2–5 years",
+  },
+  {
+    track: "SUPPLY_CHAIN" as const,
+    band: 3,
+    sector: "PRIVATE" as const,
+    displayName: { en: "Supply Chain Specialist", fr: "Spécialiste Chaîne d'Approvisionnement" },
+    typicalTitles: ["Supply Chain Specialist", "Senior Planner", "Demand & Supply Specialist"],
+    typicalYears: "5–8 years",
+  },
+  {
+    track: "SUPPLY_CHAIN" as const,
+    band: 4,
+    sector: "PRIVATE" as const,
+    displayName: { en: "Supply Chain Manager", fr: "Responsable Chaîne d'Approvisionnement" },
+    typicalTitles: ["Supply Chain Manager", "Operations Manager", "S&OP Manager"],
+    typicalYears: "8–12 years",
+  },
+  {
+    track: "SUPPLY_CHAIN" as const,
+    band: 5,
+    sector: "PRIVATE" as const,
+    displayName: { en: "Head of Supply Chain", fr: "Directeur de la Chaîne d'Approvisionnement" },
+    typicalTitles: ["Head of Supply Chain", "VP Supply Chain", "Director of Operations"],
+    typicalYears: "12+ years",
+  },
+
+  // ─── PROCUREMENT EXCELLENCE (Both) — starts at Band 2 ────────────────────────
+  {
+    track: "PROCUREMENT_EXCELLENCE" as const,
+    band: 2,
+    sector: "BOTH" as const,
+    displayName: { en: "Procurement Excellence Analyst", fr: "Analyste Excellence Achats" },
+    typicalTitles: ["Procurement Excellence Analyst", "Process Improvement Analyst", "Procurement Data Analyst"],
+    typicalYears: "2–5 years",
+  },
+  {
+    track: "PROCUREMENT_EXCELLENCE" as const,
+    band: 3,
+    sector: "BOTH" as const,
+    displayName: { en: "Category Manager", fr: "Responsable Catégorie" },
+    typicalTitles: ["Category Manager", "Strategic Procurement Manager", "Spend Analytics Manager"],
+    typicalYears: "5–8 years",
+  },
+  {
+    track: "PROCUREMENT_EXCELLENCE" as const,
+    band: 4,
+    sector: "BOTH" as const,
+    displayName: { en: "Procurement Excellence Manager", fr: "Responsable Excellence Achats" },
+    typicalTitles: ["Procurement Excellence Manager", "Head of Category Management", "Strategic Sourcing Manager"],
+    typicalYears: "8–12 years",
+  },
+  {
+    track: "PROCUREMENT_EXCELLENCE" as const,
+    band: 5,
+    sector: "BOTH" as const,
+    displayName: { en: "Chief Procurement Officer", fr: "Directeur Général des Achats" },
+    typicalTitles: ["Chief Procurement Officer", "CPO", "Group Procurement Director"],
+    typicalYears: "12+ years",
+  },
+];
+
 // POST — upsert the standard set of procurement job profiles.
 // Safe to call multiple times (idempotent upsert).
 export async function POST() {
@@ -11,80 +223,32 @@ export async function POST() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    const profiles = [
-      {
-        jobFamily: "SOURCING" as const,
-        seniorityLevel: "L1_JUNIOR" as const,
-        displayName: { en: "Junior Sourcing Analyst", fr: "Analyste Sourcing Junior" },
-      },
-      {
-        jobFamily: "SOURCING" as const,
-        seniorityLevel: "L2_MID" as const,
-        displayName: { en: "Mid-Level Sourcing Specialist", fr: "Spécialiste Sourcing Niveau Intermédiaire" },
-      },
-      {
-        jobFamily: "SOURCING" as const,
-        seniorityLevel: "L3_SENIOR" as const,
-        displayName: { en: "Senior Sourcing Manager", fr: "Responsable Sourcing Senior" },
-      },
-      {
-        jobFamily: "PROCUREMENT" as const,
-        seniorityLevel: "L2_MID" as const,
-        displayName: { en: "Procurement Specialist", fr: "Spécialiste Achats" },
-      },
-      {
-        jobFamily: "PROCUREMENT" as const,
-        seniorityLevel: "L3_SENIOR" as const,
-        displayName: { en: "Senior Buyer", fr: "Acheteur Senior" },
-      },
-      {
-        jobFamily: "PROCUREMENT" as const,
-        seniorityLevel: "L4_LEAD" as const,
-        displayName: { en: "Lead Procurement Manager", fr: "Responsable Achats Senior" },
-      },
-      {
-        jobFamily: "SUPPLY_CHAIN" as const,
-        seniorityLevel: "L3_SENIOR" as const,
-        displayName: { en: "Supply Chain Analyst", fr: "Analyste Chaîne Logistique" },
-      },
-      {
-        jobFamily: "SUPPLY_CHAIN" as const,
-        seniorityLevel: "L5_MANAGER" as const,
-        displayName: { en: "Supply Chain Manager", fr: "Responsable Chaîne Logistique" },
-      },
-      {
-        jobFamily: "SUPPLY_CHAIN" as const,
-        seniorityLevel: "L6_EXECUTIVE" as const,
-        displayName: { en: "VP Supply Chain", fr: "VP Chaîne d'Approvisionnement" },
-      },
-      {
-        jobFamily: "CATEGORY_MGMT" as const,
-        seniorityLevel: "L3_SENIOR" as const,
-        displayName: { en: "Category Manager", fr: "Responsable Catégorie" },
-      },
-      {
-        jobFamily: "LOGISTICS" as const,
-        seniorityLevel: "L2_MID" as const,
-        displayName: { en: "Logistics Coordinator", fr: "Coordinateur Logistique" },
-      },
-      {
-        jobFamily: "CONTRACT_MGMT" as const,
-        seniorityLevel: "L3_SENIOR" as const,
-        displayName: { en: "Contract Manager", fr: "Gestionnaire de Contrats" },
-      },
-    ];
-
     const results = await Promise.all(
-      profiles.map((p) =>
+      PROFILES.map((p) =>
         prisma.jobProfile.upsert({
-          where: { jobFamily_seniorityLevel: { jobFamily: p.jobFamily, seniorityLevel: p.seniorityLevel } },
-          update: {},
-          create: p,
-        })
-      )
+          where: { track_band: { track: p.track, band: p.band } },
+          update: {
+            sector: p.sector,
+            displayName: p.displayName,
+            bandLabel: BAND_LABELS[p.band],
+            typicalTitles: p.typicalTitles,
+            typicalYears: p.typicalYears,
+          },
+          create: {
+            track: p.track,
+            band: p.band,
+            sector: p.sector,
+            displayName: p.displayName,
+            bandLabel: BAND_LABELS[p.band],
+            typicalTitles: p.typicalTitles,
+            typicalYears: p.typicalYears,
+            isActive: true,
+          },
+        }),
+      ),
     );
 
-    return NextResponse.json({ created: results.length, profiles: results });
+    return NextResponse.json({ seeded: results.length, profiles: results });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

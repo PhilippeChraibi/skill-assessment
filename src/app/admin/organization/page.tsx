@@ -69,7 +69,7 @@ export default function OrganizationPage() {
     if (!res.ok) {
       setSeedResult(`Error: ${data.error}`);
     } else {
-      setSeedResult(`${data.created} job profile(s) initialized successfully.`);
+      setSeedResult(`${data.seeded} job profile(s) initialized successfully.`);
     }
     setSeedingProfiles(false);
   };

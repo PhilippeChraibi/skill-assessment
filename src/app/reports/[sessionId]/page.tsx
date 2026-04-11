@@ -116,7 +116,7 @@ export default function ReportPage() {
               {report.jobProfileDisplayName}
             </span>
             <span className="px-2 py-1 bg-gray-100 rounded">
-              {report.seniorityLevel.replace(/_/g, " ")}
+              {report.bandLabel}
             </span>
           </div>
         </div>

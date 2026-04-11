@@ -59,34 +59,49 @@ async function main() {
     },
   });
 
-  // ── Job Profiles ──
+  // ── Job Profiles (new track/band schema) ──
   const profileSourcing = await prisma.jobProfile.upsert({
-    where: { jobFamily_seniorityLevel: { jobFamily: "SOURCING", seniorityLevel: "L2_MID" } },
+    where: { track_band: { track: "DIRECT_PROCUREMENT", band: 2 } },
     update: {},
     create: {
-      jobFamily: "SOURCING",
-      seniorityLevel: "L2_MID",
-      displayName: { en: "Mid-Level Sourcing Specialist", fr: "Spécialiste Sourcing Niveau Intermédiaire" },
+      track: "DIRECT_PROCUREMENT",
+      band: 2,
+      sector: "PRIVATE",
+      displayName: { en: "Direct Buyer", fr: "Acheteur Direct" },
+      bandLabel: "Practitioner",
+      typicalTitles: ["Buyer", "Sourcing Specialist", "Procurement Analyst"],
+      typicalYears: "2–5 years",
+      isActive: true,
     },
   });
 
   const profileProcurement = await prisma.jobProfile.upsert({
-    where: { jobFamily_seniorityLevel: { jobFamily: "PROCUREMENT", seniorityLevel: "L4_LEAD" } },
+    where: { track_band: { track: "INDIRECT_PROCUREMENT", band: 3 } },
     update: {},
     create: {
-      jobFamily: "PROCUREMENT",
-      seniorityLevel: "L4_LEAD",
-      displayName: { en: "Lead Procurement Manager", fr: "Responsable Achats Senior" },
+      track: "INDIRECT_PROCUREMENT",
+      band: 3,
+      sector: "PRIVATE",
+      displayName: { en: "Senior Indirect Buyer", fr: "Acheteur Indirect Senior" },
+      bandLabel: "Advanced Practitioner",
+      typicalTitles: ["Senior Indirect Buyer", "Services Category Specialist"],
+      typicalYears: "5–8 years",
+      isActive: true,
     },
   });
 
   const profileSupplyChain = await prisma.jobProfile.upsert({
-    where: { jobFamily_seniorityLevel: { jobFamily: "SUPPLY_CHAIN", seniorityLevel: "L6_EXECUTIVE" } },
+    where: { track_band: { track: "SUPPLY_CHAIN", band: 4 } },
     update: {},
     create: {
-      jobFamily: "SUPPLY_CHAIN",
-      seniorityLevel: "L6_EXECUTIVE",
-      displayName: { en: "VP Supply Chain", fr: "VP Chaîne d'Approvisionnement" },
+      track: "SUPPLY_CHAIN",
+      band: 4,
+      sector: "PRIVATE",
+      displayName: { en: "Supply Chain Manager", fr: "Responsable Chaîne d'Approvisionnement" },
+      bandLabel: "Manager",
+      typicalTitles: ["Supply Chain Manager", "S&OP Manager"],
+      typicalYears: "8–12 years",
+      isActive: true,
     },
   });
 
@@ -193,7 +208,6 @@ async function main() {
     // SCENARIO (4)
     ...["en", "fr"].flatMap((lang) => [
       {
-        jobProfileId: profileSourcing.id,
         language: lang,
         questionType: "SCENARIO" as const,
         dimension: "PRACTICE" as const,
@@ -210,7 +224,6 @@ async function main() {
         },
       },
       {
-        jobProfileId: profileSourcing.id,
         language: lang,
         questionType: "SCENARIO" as const,
         dimension: "PRACTICE" as const,
@@ -227,7 +240,6 @@ async function main() {
         },
       },
       {
-        jobProfileId: profileSourcing.id,
         language: lang,
         questionType: "SCENARIO" as const,
         dimension: "PRACTICE" as const,
@@ -244,7 +256,6 @@ async function main() {
         },
       },
       {
-        jobProfileId: profileSourcing.id,
         language: lang,
         questionType: "SCENARIO" as const,
         dimension: "PRACTICE" as const,
@@ -264,7 +275,6 @@ async function main() {
     // OPEN_TEXT (3)
     ...["en", "fr"].flatMap((lang) => [
       {
-        jobProfileId: profileSourcing.id,
         language: lang,
         questionType: "OPEN_TEXT" as const,
         dimension: "THEORY" as const,
@@ -281,7 +291,6 @@ async function main() {
         },
       },
       {
-        jobProfileId: profileSourcing.id,
         language: lang,
         questionType: "OPEN_TEXT" as const,
         dimension: "PRACTICE" as const,
@@ -298,7 +307,6 @@ async function main() {
         },
       },
       {
-        jobProfileId: profileSourcing.id,
         language: lang,
         questionType: "OPEN_TEXT" as const,
         dimension: "THEORY" as const,
@@ -317,12 +325,21 @@ async function main() {
     ]),
   ];
 
-  // Create all sourcing questions
+  // Create all sourcing questions and link to profile
   for (const q of sourcingQuestions) {
-    await prisma.question.create({ data: q as any });
+    const created = await prisma.question.create({ data: q as any });
+    // Link questions that don't already have profiles (flatMap SCENARIO/OPEN_TEXT)
+    const hasProfiles = (q as any).profiles;
+    if (!hasProfiles) {
+      await prisma.profileQuestion.upsert({
+        where: { profileId_questionId: { profileId: profileSourcing.id, questionId: created.id } },
+        create: { profileId: profileSourcing.id, questionId: created.id, difficultyWeight: created.difficultyWeight },
+        update: {},
+      });
+    }
   }
 
-  console.log(`Created ${sourcingQuestions.length} questions for SOURCING / L2_MID`);
+  console.log(`Created ${sourcingQuestions.length} questions for Direct Procurement / Practitioner`);
 
   // For PROCUREMENT and SUPPLY_CHAIN profiles, create smaller representative sets
   // (abbreviated for seed — same pattern as above)
@@ -439,7 +456,6 @@ function createMcqVariants(
   for (const lang of ["en", "fr"] as const) {
     for (let i = 0; i < variants[lang].length; i++) {
       questions.push({
-        jobProfileId: profileId,
         language: lang,
         questionType: "MCQ",
         dimension,
@@ -447,6 +463,7 @@ function createMcqVariants(
         difficultyWeight: difficulty,
         variantGroupId: `${groupId}-${lang}`,
         content: variants[lang][i],
+        profiles: { create: [{ profileId, difficultyWeight: difficulty }] },
       });
     }
   }
@@ -465,7 +482,6 @@ function createProfileQuestions(profileId: string, prefix: string) {
       const domain = domains[i];
       // MCQ Theory
       questions.push({
-        jobProfileId: profileId,
         language: lang,
         questionType: "MCQ",
         dimension: "THEORY",
@@ -481,10 +497,10 @@ function createProfileQuestions(profileId: string, prefix: string) {
             : ["Réduction des coûts uniquement", "Création de valeur stratégique par une approche systématique", "Consolidation des fournisseurs", "Application de la conformité"],
           correctAnswer: 1,
         },
+        profiles: { create: [{ profileId, difficultyWeight: 1.0 + i * 0.5 }] },
       });
       // MCQ Practice
       questions.push({
-        jobProfileId: profileId,
         language: lang,
         questionType: "MCQ",
         dimension: "PRACTICE",
@@ -500,11 +516,11 @@ function createProfileQuestions(profileId: string, prefix: string) {
             : ["Action immédiate sans analyse", "Collecte de données et alignement des parties prenantes", "Externaliser la décision", "Attendre la direction du management"],
           correctAnswer: 1,
         },
+        profiles: { create: [{ profileId, difficultyWeight: 1.5 + i * 0.3 }] },
       });
     }
     // Scenario
     questions.push({
-      jobProfileId: profileId,
       language: lang,
       questionType: "SCENARIO",
       dimension: "PRACTICE",
@@ -519,10 +535,10 @@ function createProfileQuestions(profileId: string, prefix: string) {
         context: `Vous dirigez une initiative de transformation ${prefix}. Le budget a été réduit de 20%, mais les attentes de la direction restent inchangées. Deux membres clés de l'équipe ont démissionné.`,
         rubric: { criteria: ["Priorisation stratégique", "Gestion des parties prenantes", "Optimisation des ressources", "Atténuation des risques"], maxScore: 10 },
       },
+      profiles: { create: [{ profileId, difficultyWeight: 2.0 }] },
     });
     // Open Text
     questions.push({
-      jobProfileId: profileId,
       language: lang,
       questionType: "OPEN_TEXT",
       dimension: "THEORY",
@@ -537,6 +553,7 @@ function createProfileQuestions(profileId: string, prefix: string) {
         rubric: { criteria: ["Connaissance des cadres", "Application pratique", "Conscience de l'industrie", "Perspective stratégique"], maxScore: 10 },
         guidanceWordCount: { min: 150, max: 300 },
       },
+      profiles: { create: [{ profileId, difficultyWeight: 1.5 }] },
     });
   }
   return questions;

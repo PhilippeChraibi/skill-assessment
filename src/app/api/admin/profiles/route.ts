@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth-utils";
 import { prisma } from "@/lib/db";
 
-// GET — list all job profiles (active + inactive)
+// GET — list all profiles grouped by track, with question counts
 export async function GET() {
   try {
     const session = await getSession();
@@ -11,8 +11,10 @@ export async function GET() {
     }
 
     const profiles = await prisma.jobProfile.findMany({
-      orderBy: [{ jobFamily: "asc" }, { seniorityLevel: "asc" }],
-      include: { _count: { select: { campaigns: true, questions: true } } },
+      orderBy: [{ track: "asc" }, { band: "asc" }],
+      include: {
+        _count: { select: { campaigns: true, questions: true } },
+      },
     });
 
     return NextResponse.json(profiles);
@@ -21,7 +23,7 @@ export async function GET() {
   }
 }
 
-// POST — create a new job profile
+// POST — create a new profile
 export async function POST(req: NextRequest) {
   try {
     const session = await getSession();
@@ -30,17 +32,24 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { jobFamily, seniorityLevel, displayNameEn, displayNameFr } = body;
+    const { track, band, sector, displayNameEn, displayNameFr, bandLabel, typicalTitles, typicalYears } = body;
 
-    if (!jobFamily || !seniorityLevel || !displayNameEn) {
-      return NextResponse.json({ error: "jobFamily, seniorityLevel and English display name are required" }, { status: 400 });
+    if (!track || !band || !sector || !displayNameEn || !bandLabel) {
+      return NextResponse.json(
+        { error: "track, band, sector, displayNameEn and bandLabel are required" },
+        { status: 400 },
+      );
     }
 
     const profile = await prisma.jobProfile.create({
       data: {
-        jobFamily,
-        seniorityLevel,
+        track,
+        band: Number(band),
+        sector,
         displayName: { en: displayNameEn, fr: displayNameFr ?? displayNameEn },
+        bandLabel,
+        typicalTitles: typicalTitles ?? [],
+        typicalYears: typicalYears ?? "",
         isActive: true,
       },
     });
@@ -48,7 +57,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(profile, { status: 201 });
   } catch (error: any) {
     if (error.code === "P2002") {
-      return NextResponse.json({ error: "A profile for this job family and seniority level already exists." }, { status: 409 });
+      return NextResponse.json(
+        { error: "A profile for this track and band already exists." },
+        { status: 409 },
+      );
     }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

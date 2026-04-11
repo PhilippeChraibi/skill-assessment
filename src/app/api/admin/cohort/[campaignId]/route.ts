@@ -33,7 +33,7 @@ export async function GET(
       where: { campaignId: campaignId, status: "COMPLETED", deletedAt: null },
       include: {
         candidate: { select: { name: true, email: true } },
-        jobProfile: { select: { seniorityLevel: true } },
+        jobProfile: { select: { band: true, bandLabel: true } },
       },
       orderBy: { overallScore: "desc" },
     });
@@ -73,18 +73,18 @@ export async function GET(
       .slice(0, 3)
       .map(([domain, avg]) => ({ domain, averageScore: avg }));
 
-    // Seniority breakdown
-    const seniorityGroups = new Map<string, number[]>();
+    // Band breakdown (replaces seniority breakdown)
+    const bandGroups = new Map<string, number[]>();
     for (const s of sessions) {
-      const level = s.jobProfile.seniorityLevel;
-      const arr = seniorityGroups.get(level) ?? [];
+      const label = s.jobProfile.bandLabel ?? `Band ${s.jobProfile.band}`;
+      const arr = bandGroups.get(label) ?? [];
       arr.push(s.overallScore ?? 0);
-      seniorityGroups.set(level, arr);
+      bandGroups.set(label, arr);
     }
 
     const seniorityBreakdown: Record<string, { avg: number; count: number }> = {};
-    for (const [level, scores] of seniorityGroups) {
-      seniorityBreakdown[level] = {
+    for (const [label, scores] of bandGroups) {
+      seniorityBreakdown[label] = {
         avg: Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 100) / 100,
         count: scores.length,
       };

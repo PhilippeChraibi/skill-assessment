@@ -79,7 +79,7 @@ export default function CampaignDetailPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">{campaign.name}</h1>
           <p className="text-gray-500 text-sm mt-1">
-            {campaign.jobProfile.jobFamily} / {campaign.jobProfile.seniorityLevel.replace(/_/g, " ")}
+            {campaign.jobProfile.displayName?.en ?? campaign.jobProfile.track?.replace(/_/g, " ")} — Band {campaign.jobProfile.band}
           </p>
         </div>
         <div className="flex gap-2">

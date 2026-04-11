@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
         where,
         include: {
           candidate: { select: { name: true, email: true } },
-          jobProfile: { select: { jobFamily: true, seniorityLevel: true, displayName: true } },
+          jobProfile: { select: { track: true, band: true, bandLabel: true, displayName: true } },
           campaign: { select: { name: true } },
         },
         orderBy: { createdAt: "desc" },

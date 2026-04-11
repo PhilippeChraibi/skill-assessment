@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
     }
 
     const url = new URL(req.url);
-    const jobProfileId = url.searchParams.get("jobProfileId");
+    const profileId = url.searchParams.get("profileId");
     const language = url.searchParams.get("language");
     const dimension = url.searchParams.get("dimension");
     const questionType = url.searchParams.get("questionType");
@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
     const limit = parseInt(url.searchParams.get("limit") ?? "50");
 
     const where: Record<string, unknown> = {};
-    if (jobProfileId) where.jobProfileId = jobProfileId;
+    if (profileId) where.profiles = { some: { profileId } };
     if (language) where.language = language;
     if (dimension) where.dimension = dimension;
     if (questionType) where.questionType = questionType;
@@ -33,7 +33,13 @@ export async function GET(req: NextRequest) {
       prisma.question.findMany({
         where,
         include: {
-          jobProfile: { select: { jobFamily: true, seniorityLevel: true } },
+          profiles: {
+            include: {
+              profile: {
+                select: { id: true, track: true, band: true, displayName: true },
+              },
+            },
+          },
         },
         orderBy: [{ domainTag: "asc" }, { createdAt: "desc" }],
         skip: (page - 1) * limit,
@@ -75,7 +81,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST — create question
+// POST — create question and optionally link to profiles
 export async function POST(req: NextRequest) {
   try {
     const session = await getSession();
@@ -85,24 +91,37 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     const {
-      jobProfileId, language, questionType, dimension,
+      language, questionType, dimension,
       domainTag, difficultyWeight, content, variantGroupId,
+      // Array of { profileId, difficultyWeight? }
+      profileAssignments,
     } = body;
 
-    if (!jobProfileId || !questionType || !dimension || !domainTag || !content) {
+    if (!questionType || !dimension || !domainTag || !content) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
     const question = await prisma.question.create({
       data: {
-        jobProfileId,
         language: language ?? "en",
         questionType,
         dimension,
         domainTag,
-        difficultyWeight: difficultyWeight ?? 1.0,
+        difficultyWeight: difficultyWeight ?? 1.5,
         content,
         variantGroupId: variantGroupId ?? undefined,
+        profiles: profileAssignments?.length
+          ? {
+              create: profileAssignments.map((a: { profileId: string; difficultyWeight?: number; proficiencyTarget?: string }) => ({
+                profileId: a.profileId,
+                difficultyWeight: a.difficultyWeight ?? difficultyWeight ?? 1.5,
+                proficiencyTarget: a.proficiencyTarget ?? "P",
+              })),
+            }
+          : undefined,
+      },
+      include: {
+        profiles: { include: { profile: { select: { id: true, track: true, band: true, displayName: true } } } },
       },
     });
 

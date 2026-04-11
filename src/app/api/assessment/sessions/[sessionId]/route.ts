@@ -25,7 +25,7 @@ export async function GET(
           select: { name: true, settings: true },
         },
         jobProfile: {
-          select: { jobFamily: true, seniorityLevel: true, displayName: true },
+          select: { track: true, band: true, bandLabel: true, displayName: true },
         },
       },
     });
