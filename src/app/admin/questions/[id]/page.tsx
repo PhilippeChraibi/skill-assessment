@@ -270,7 +270,7 @@ export default function EditQuestionPage() {
                 <optgroup key={track} label={TRACK_LABELS[track] ?? track}>
                   {fps.sort((a, b) => a.band - b.band).map((p) => (
                     <option key={p.id} value={p.id}>
-                      Band {p.band} – {(p.displayName as any).en}
+                      Level {p.band} – {(p.displayName as any).en}
                     </option>
                   ))}
                 </optgroup>
@@ -301,7 +301,7 @@ export default function EditQuestionPage() {
             {(question.profiles as ProfileAssignment[]).map((a) => (
               <div key={a.profileId} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0">
                 <div className="flex-shrink-0 w-7 h-7 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center justify-center">
-                  B{a.profile.band}
+                  L{a.profile.band}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900">{(a.profile.displayName as any).en}</p>

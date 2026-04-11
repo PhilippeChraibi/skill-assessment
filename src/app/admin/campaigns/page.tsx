@@ -76,7 +76,7 @@ export default function CampaignsPage() {
                       <div className="text-xs text-gray-400">by {c.createdBy.name ?? c.createdBy.email}</div>
                     </td>
                     <td className="px-4 py-3 text-gray-600">
-                      {c.jobProfile.displayName?.en ?? c.jobProfile.track.replace(/_/g, " ")} — Band {c.jobProfile.band}
+                      {c.jobProfile.displayName?.en ?? c.jobProfile.track.replace(/_/g, " ")} — Level {c.jobProfile.band}
                     </td>
                     <td className="px-4 py-3 text-gray-600">
                       <div>{new Date(c.startsAt).toLocaleDateString()}</div>

@@ -321,7 +321,7 @@ export default function NewQuestionPage() {
                               : "bg-white text-gray-600 border-gray-300 hover:border-blue-400"
                           }`}
                         >
-                          B{p.band} – {(p.displayName as any).en}
+                          L{p.band} – {(p.displayName as any).en}
                         </button>
                       );
                     })}

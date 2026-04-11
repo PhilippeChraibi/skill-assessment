@@ -103,7 +103,7 @@ export default function NewCampaignPage() {
             <option value="">Select a profile...</option>
             {profiles.map((p) => (
               <option key={p.id} value={p.id}>
-                {p.displayName?.en ?? p.track.replace(/_/g, " ")} — Band {p.band} ({p.bandLabel})
+                {p.displayName?.en ?? p.track.replace(/_/g, " ")} — Level {p.band} ({p.bandLabel})
               </option>
             ))}
           </select>

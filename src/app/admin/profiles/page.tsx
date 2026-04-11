@@ -197,7 +197,7 @@ export default function ProfilesPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Job Profiles</h1>
           <p className="text-sm text-gray-500 mt-1">
-            5 tracks × up to 5 bands. Multiple roles per band are supported — same seniority, different duties.
+            5 tracks × up to 5 levels. Multiple roles per level are supported — same seniority, different duties.
           </p>
         </div>
         <div className="flex gap-2">
@@ -244,7 +244,7 @@ export default function ProfilesPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Band <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Level <span className="text-red-500">*</span></label>
                 <select
                   required
                   value={form.band}
@@ -253,7 +253,7 @@ export default function ProfilesPage() {
                 >
                   <option value="">Select…</option>
                   {[1, 2, 3, 4, 5].map((b) => (
-                    <option key={b} value={b}>Band {b} – {BAND_LABELS[b]}</option>
+                    <option key={b} value={b}>Level {b} – {BAND_LABELS[b]}</option>
                   ))}
                 </select>
               </div>
@@ -295,7 +295,7 @@ export default function ProfilesPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Band Label <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Level Label <span className="text-red-500">*</span></label>
                 <input
                   required
                   value={form.bandLabel}
@@ -364,7 +364,7 @@ export default function ProfilesPage() {
                     <div className={`flex items-center gap-3 px-5 py-3 hover:bg-gray-50 transition-colors ${!p.isActive ? "opacity-50" : ""}`}>
                       {/* Band badge */}
                       <div className="flex-shrink-0 w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold flex items-center justify-center">
-                        B{p.band}
+                        L{p.band}
                       </div>
 
                       {/* Names */}
@@ -407,7 +407,7 @@ export default function ProfilesPage() {
                               value={editForm.bandLabel}
                               onChange={(e) => setEditForm({ ...editForm, bandLabel: e.target.value })}
                               className="px-2 py-1 border border-blue-400 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              placeholder="Band label"
+                              placeholder="Level label"
                             />
                             <input
                               value={editForm.typicalYears}
