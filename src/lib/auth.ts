@@ -124,6 +124,16 @@ export const authOptions: NextAuthOptions = {
   events: {
     async createUser({ user }) {
       logger.info({ userId: user.id, email: user.email }, "New user created");
+
+      // Auto-promote the very first user to ADMIN so they can bootstrap the platform
+      const userCount = await prisma.user.count();
+      if (userCount === 1) {
+        await prisma.user.update({
+          where: { id: user.id! },
+          data: { role: "ADMIN" },
+        });
+        logger.info({ userId: user.id }, "First user auto-promoted to ADMIN");
+      }
     },
   },
 };
