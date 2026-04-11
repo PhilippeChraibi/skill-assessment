@@ -55,10 +55,26 @@ const PROFILES = [
   },
   {
     track: "DIRECT_PROCUREMENT" as const,
+    band: 3,
+    sector: "PRIVATE" as const,
+    displayName: { en: "Site Procurement Manager", fr: "Responsable Achats Site" },
+    typicalTitles: ["Site Procurement Manager", "Plant Buyer", "Manufacturing Site Buyer"],
+    typicalYears: "5–8 years",
+  },
+  {
+    track: "DIRECT_PROCUREMENT" as const,
     band: 4,
     sector: "PRIVATE" as const,
     displayName: { en: "Direct Procurement Manager", fr: "Responsable Achats Directs" },
     typicalTitles: ["Procurement Manager", "Sourcing Manager", "Head of Direct Categories"],
+    typicalYears: "8–12 years",
+  },
+  {
+    track: "DIRECT_PROCUREMENT" as const,
+    band: 4,
+    sector: "PRIVATE" as const,
+    displayName: { en: "Cluster Procurement Manager", fr: "Responsable Achats Cluster" },
+    typicalTitles: ["Cluster Procurement Manager", "Regional Sourcing Manager", "Multi-Site Procurement Manager"],
     typicalYears: "8–12 years",
   },
   {
@@ -75,7 +91,7 @@ const PROFILES = [
     sector: "PRIVATE" as const,
     displayName: { en: "Chief Procurement Officer", fr: "Directeur Général des Achats" },
     typicalTitles: ["CPO", "Group Procurement Director", "VP Global Procurement"],
-    typicalYears: "12+ years",
+    typicalYears: "20+ years",
   },
 
   // ─── INDIRECT PROCUREMENT (Private) ───────────────────────────────────────────
@@ -113,10 +129,26 @@ const PROFILES = [
   },
   {
     track: "INDIRECT_PROCUREMENT" as const,
+    band: 3,
+    sector: "PRIVATE" as const,
+    displayName: { en: "Country Procurement Manager", fr: "Responsable Achats Pays" },
+    typicalTitles: ["Country Procurement Manager", "National Purchasing Manager", "Local Procurement Lead"],
+    typicalYears: "5–8 years",
+  },
+  {
+    track: "INDIRECT_PROCUREMENT" as const,
     band: 4,
     sector: "PRIVATE" as const,
     displayName: { en: "Indirect Procurement Manager", fr: "Responsable Achats Indirects" },
     typicalTitles: ["Indirect Procurement Manager", "Head of Indirect Categories", "Purchasing Manager"],
+    typicalYears: "8–12 years",
+  },
+  {
+    track: "INDIRECT_PROCUREMENT" as const,
+    band: 4,
+    sector: "PRIVATE" as const,
+    displayName: { en: "Regional Procurement Manager", fr: "Responsable Achats Régional" },
+    typicalTitles: ["Regional Procurement Manager", "Zone Procurement Manager", "Multi-Country Procurement Lead"],
     typicalYears: "8–12 years",
   },
   {
@@ -133,7 +165,7 @@ const PROFILES = [
     sector: "PRIVATE" as const,
     displayName: { en: "Chief Procurement Officer", fr: "Directeur Général des Achats" },
     typicalTitles: ["CPO", "Group Procurement Director", "VP Global Procurement"],
-    typicalYears: "12+ years",
+    typicalYears: "20+ years",
   },
 
   // ─── PUBLIC PROCUREMENT (Public) ──────────────────────────────────────────────
@@ -231,27 +263,11 @@ const PROFILES = [
   },
   {
     track: "PROCUREMENT_EXCELLENCE" as const,
-    band: 3,
-    sector: "BOTH" as const,
-    displayName: { en: "Category Manager", fr: "Responsable Catégorie" },
-    typicalTitles: ["Category Manager", "Strategic Procurement Manager", "Spend Analytics Manager"],
-    typicalYears: "5–8 years",
-  },
-  {
-    track: "PROCUREMENT_EXCELLENCE" as const,
     band: 4,
     sector: "BOTH" as const,
     displayName: { en: "Procurement Excellence Manager", fr: "Responsable Excellence Achats" },
     typicalTitles: ["Procurement Excellence Manager", "Head of Category Management", "Strategic Sourcing Manager"],
     typicalYears: "8–12 years",
-  },
-  {
-    track: "PROCUREMENT_EXCELLENCE" as const,
-    band: 5,
-    sector: "BOTH" as const,
-    displayName: { en: "Chief Procurement Officer", fr: "Directeur Général des Achats" },
-    typicalTitles: ["Chief Procurement Officer", "CPO", "Group Procurement Director"],
-    typicalYears: "12+ years",
   },
 ];
 
