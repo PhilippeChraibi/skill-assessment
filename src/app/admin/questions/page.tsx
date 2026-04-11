@@ -24,6 +24,8 @@ export default function QuestionsPage() {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({ language: "", dimension: "", questionType: "", domainTag: "" });
+  const [seeding, setSeeding] = useState(false);
+  const [seedMsg, setSeedMsg] = useState("");
 
   const fetchQuestions = async (p: number) => {
     setLoading(true);
@@ -53,13 +55,39 @@ export default function QuestionsPage() {
           <h1 className="text-2xl font-bold text-gray-900">Question Bank</h1>
           <p className="text-sm text-gray-500 mt-1">{total} questions</p>
         </div>
-        <Link
-          href="/admin/questions/new"
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
-        >
-          + New Question
-        </Link>
+        <div className="flex gap-2">
+          <button
+            onClick={async () => {
+              if (!confirm("This will create the standard question bank for all active profiles. Existing questions are not affected. Continue?")) return;
+              setSeeding(true);
+              setSeedMsg("");
+              const res = await fetch("/api/admin/questions/seed", { method: "POST" });
+              const data = await res.json();
+              if (!res.ok) setSeedMsg(`Error: ${data.error}`);
+              else setSeedMsg(`${data.questionsCreated} questions created with ${data.assignmentsCreated} profile assignments.`);
+              setSeeding(false);
+              fetchQuestions(1);
+              setPage(1);
+            }}
+            disabled={seeding}
+            className="px-4 py-2 bg-amber-500 text-white rounded-lg text-sm font-medium hover:bg-amber-600 disabled:opacity-50"
+          >
+            {seeding ? "Seeding\u2026" : "Seed Question Bank"}
+          </button>
+          <Link
+            href="/admin/questions/new"
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
+          >
+            + New Question
+          </Link>
+        </div>
       </div>
+
+      {seedMsg && (
+        <div className={`px-4 py-3 rounded-lg text-sm mb-4 ${seedMsg.startsWith("Error") ? "bg-red-50 text-red-700" : "bg-green-50 text-green-700"}`}>
+          {seedMsg}
+        </div>
+      )}
 
       {/* Filters */}
       <div className="flex gap-3 mb-4">
