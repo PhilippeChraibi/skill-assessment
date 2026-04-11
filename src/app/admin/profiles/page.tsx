@@ -197,7 +197,7 @@ export default function ProfilesPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Job Profiles</h1>
           <p className="text-sm text-gray-500 mt-1">
-            5 tracks × up to 5 bands. Each profile links to questions and campaigns.
+            5 tracks × up to 5 bands. Multiple roles per band are supported — same seniority, different duties.
           </p>
         </div>
         <div className="flex gap-2">

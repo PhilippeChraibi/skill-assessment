@@ -59,11 +59,12 @@ async function main() {
     },
   });
 
-  // ── Job Profiles (new track/band schema) ──
+  // ── Job Profiles (new track/band/slug schema) ──
   const profileSourcing = await prisma.jobProfile.upsert({
-    where: { track_band: { track: "DIRECT_PROCUREMENT", band: 2 } },
+    where: { slug: "direct-procurement-b2-direct-buyer" },
     update: {},
     create: {
+      slug: "direct-procurement-b2-direct-buyer",
       track: "DIRECT_PROCUREMENT",
       band: 2,
       sector: "PRIVATE",
@@ -76,9 +77,10 @@ async function main() {
   });
 
   const profileProcurement = await prisma.jobProfile.upsert({
-    where: { track_band: { track: "INDIRECT_PROCUREMENT", band: 3 } },
+    where: { slug: "indirect-procurement-b3-senior-indirect-buyer" },
     update: {},
     create: {
+      slug: "indirect-procurement-b3-senior-indirect-buyer",
       track: "INDIRECT_PROCUREMENT",
       band: 3,
       sector: "PRIVATE",
@@ -91,9 +93,10 @@ async function main() {
   });
 
   const profileSupplyChain = await prisma.jobProfile.upsert({
-    where: { track_band: { track: "SUPPLY_CHAIN", band: 4 } },
+    where: { slug: "supply-chain-b4-supply-chain-manager" },
     update: {},
     create: {
+      slug: "supply-chain-b4-supply-chain-manager",
       track: "SUPPLY_CHAIN",
       band: 4,
       sector: "PRIVATE",

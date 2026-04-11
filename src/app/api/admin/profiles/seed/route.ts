@@ -10,8 +10,17 @@ const BAND_LABELS: Record<number, string> = {
   5: "Senior Leader",
 };
 
+function makeSlug(track: string, band: number, displayNameEn: string): string {
+  const trackPart = track.toLowerCase().replace(/_/g, "-");
+  const namePart = displayNameEn
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+  return `${trackPart}-b${band}-${namePart}`;
+}
+
 const PROFILES = [
-  // ─── DIRECT PROCUREMENT (Private) ────────────────────────────────────────────
+  // ─── DIRECT PROCUREMENT (Private) ─────────────────────────────────────────────
   {
     track: "DIRECT_PROCUREMENT" as const,
     band: 1,
@@ -38,10 +47,18 @@ const PROFILES = [
   },
   {
     track: "DIRECT_PROCUREMENT" as const,
+    band: 3,
+    sector: "PRIVATE" as const,
+    displayName: { en: "Category Manager (Direct)", fr: "Responsable Catégorie (Direct)" },
+    typicalTitles: ["Category Manager", "Commodity Manager", "Strategic Buyer"],
+    typicalYears: "5–8 years",
+  },
+  {
+    track: "DIRECT_PROCUREMENT" as const,
     band: 4,
     sector: "PRIVATE" as const,
     displayName: { en: "Direct Procurement Manager", fr: "Responsable Achats Directs" },
-    typicalTitles: ["Procurement Manager", "Sourcing Manager", "Category Manager – Direct"],
+    typicalTitles: ["Procurement Manager", "Sourcing Manager", "Head of Direct Categories"],
     typicalYears: "8–12 years",
   },
   {
@@ -52,8 +69,16 @@ const PROFILES = [
     typicalTitles: ["Head of Procurement", "VP Procurement", "Director of Strategic Sourcing"],
     typicalYears: "12+ years",
   },
+  {
+    track: "DIRECT_PROCUREMENT" as const,
+    band: 5,
+    sector: "PRIVATE" as const,
+    displayName: { en: "Chief Procurement Officer", fr: "Directeur Général des Achats" },
+    typicalTitles: ["CPO", "Group Procurement Director", "VP Global Procurement"],
+    typicalYears: "12+ years",
+  },
 
-  // ─── INDIRECT PROCUREMENT (Private) ──────────────────────────────────────────
+  // ─── INDIRECT PROCUREMENT (Private) ───────────────────────────────────────────
   {
     track: "INDIRECT_PROCUREMENT" as const,
     band: 1,
@@ -75,7 +100,15 @@ const PROFILES = [
     band: 3,
     sector: "PRIVATE" as const,
     displayName: { en: "Senior Indirect Buyer", fr: "Acheteur Indirect Senior" },
-    typicalTitles: ["Senior Indirect Buyer", "Lead Buyer – Indirect", "Services Category Specialist"],
+    typicalTitles: ["Senior Indirect Buyer", "Lead Buyer – Indirect", "Services Specialist"],
+    typicalYears: "5–8 years",
+  },
+  {
+    track: "INDIRECT_PROCUREMENT" as const,
+    band: 3,
+    sector: "PRIVATE" as const,
+    displayName: { en: "Category Manager (Indirect)", fr: "Responsable Catégorie (Indirect)" },
+    typicalTitles: ["Category Manager", "IT Category Manager", "Facilities Category Manager"],
     typicalYears: "5–8 years",
   },
   {
@@ -83,7 +116,7 @@ const PROFILES = [
     band: 4,
     sector: "PRIVATE" as const,
     displayName: { en: "Indirect Procurement Manager", fr: "Responsable Achats Indirects" },
-    typicalTitles: ["Indirect Procurement Manager", "Category Manager – Indirect", "Purchasing Manager"],
+    typicalTitles: ["Indirect Procurement Manager", "Head of Indirect Categories", "Purchasing Manager"],
     typicalYears: "8–12 years",
   },
   {
@@ -92,6 +125,14 @@ const PROFILES = [
     sector: "PRIVATE" as const,
     displayName: { en: "Head of Indirect Procurement", fr: "Directeur des Achats Indirects" },
     typicalTitles: ["Head of Indirect Procurement", "VP Indirect Procurement", "Director of Indirect Spend"],
+    typicalYears: "12+ years",
+  },
+  {
+    track: "INDIRECT_PROCUREMENT" as const,
+    band: 5,
+    sector: "PRIVATE" as const,
+    displayName: { en: "Chief Procurement Officer", fr: "Directeur Général des Achats" },
+    typicalTitles: ["CPO", "Group Procurement Director", "VP Global Procurement"],
     typicalYears: "12+ years",
   },
 
@@ -179,7 +220,7 @@ const PROFILES = [
     typicalYears: "12+ years",
   },
 
-  // ─── PROCUREMENT EXCELLENCE (Both) — starts at Band 2 ────────────────────────
+  // ─── PROCUREMENT EXCELLENCE (Both) — starts at Band 2 ─────────────────────────
   {
     track: "PROCUREMENT_EXCELLENCE" as const,
     band: 2,
@@ -215,7 +256,7 @@ const PROFILES = [
 ];
 
 // POST — upsert the standard set of procurement job profiles.
-// Safe to call multiple times (idempotent upsert).
+// Safe to call multiple times (idempotent via slug).
 export async function POST() {
   try {
     const session = await getSession();
@@ -224,9 +265,10 @@ export async function POST() {
     }
 
     const results = await Promise.all(
-      PROFILES.map((p) =>
-        prisma.jobProfile.upsert({
-          where: { track_band: { track: p.track, band: p.band } },
+      PROFILES.map((p) => {
+        const slug = makeSlug(p.track, p.band, (p.displayName as any).en);
+        return prisma.jobProfile.upsert({
+          where: { slug },
           update: {
             sector: p.sector,
             displayName: p.displayName,
@@ -235,6 +277,7 @@ export async function POST() {
             typicalYears: p.typicalYears,
           },
           create: {
+            slug,
             track: p.track,
             band: p.band,
             sector: p.sector,
@@ -244,8 +287,8 @@ export async function POST() {
             typicalYears: p.typicalYears,
             isActive: true,
           },
-        }),
-      ),
+        });
+      }),
     );
 
     return NextResponse.json({ seeded: results.length, profiles: results });

@@ -23,6 +23,15 @@ export async function GET() {
   }
 }
 
+function makeSlug(track: string, band: number, displayNameEn: string): string {
+  const trackPart = track.toLowerCase().replace(/_/g, "-");
+  const namePart = displayNameEn
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+  return `${trackPart}-b${band}-${namePart}`;
+}
+
 // POST — create a new profile
 export async function POST(req: NextRequest) {
   try {
@@ -41,8 +50,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const slug = makeSlug(track, Number(band), displayNameEn);
+
     const profile = await prisma.jobProfile.create({
       data: {
+        slug,
         track,
         band: Number(band),
         sector,
@@ -58,7 +70,7 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     if (error.code === "P2002") {
       return NextResponse.json(
-        { error: "A profile for this track and band already exists." },
+        { error: "A profile with this name already exists for this track/band. Use a different display name." },
         { status: 409 },
       );
     }

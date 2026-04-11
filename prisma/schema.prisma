@@ -183,6 +183,7 @@ model VerificationToken {
 
 model JobProfile {
   id            String            @id @default(cuid())
+  slug          String            @unique // e.g. "direct-procurement-b3-category-manager-direct"
   track         ProcurementTrack
   band          Int               // 1–5
   sector        Sector
@@ -199,7 +200,7 @@ model JobProfile {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([track, band])
+  @@index([track, band])
   @@map("job_profiles")
 }
 
