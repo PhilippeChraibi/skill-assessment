@@ -55,10 +55,17 @@ export async function POST(
         if (!trimmed) return null;
 
         // Upsert candidate user
-        await prisma.user.upsert({
+        const user = await prisma.user.upsert({
           where: { email: trimmed },
           create: { email: trimmed, role: "CANDIDATE" },
           update: {},
+        });
+
+        // Record the invite (idempotent — ignore if already exists)
+        await prisma.campaignInvite.upsert({
+          where: { campaignId_email: { campaignId: id, email: trimmed } },
+          create: { campaignId: id, email: trimmed, userId: user.id },
+          update: { userId: user.id },
         });
 
         // Send invite email

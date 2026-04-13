@@ -25,9 +25,15 @@ export async function GET(
         sessions: {
           where: { deletedAt: null },
           include: {
-            candidate: { select: { name: true, email: true } },
+            candidate: { select: { id: true, name: true, email: true } },
           },
           orderBy: { createdAt: "desc" },
+        },
+        invites: {
+          orderBy: { invitedAt: "desc" },
+          include: {
+            user: { select: { id: true, name: true, email: true, emailVerified: true } },
+          },
         },
       },
     });

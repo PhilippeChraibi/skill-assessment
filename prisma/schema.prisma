@@ -98,6 +98,7 @@ model User {
   organization      Organization? @relation(fields: [organizationId], references: [id])
   sessions          AssessmentSession[]
   createdCampaigns  Campaign[]    @relation("CampaignCreator")
+  campaignInvites   CampaignInvite[]
   integrityReviews  IntegrityReview[]
   candidateProfile  CandidateProfile?
 
@@ -284,6 +285,7 @@ model Campaign {
   createdBy        User         @relation("CampaignCreator", fields: [createdByAdminId], references: [id])
   jobProfile       JobProfile   @relation(fields: [jobProfileId], references: [id])
   sessions         AssessmentSession[]
+  invites          CampaignInvite[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -291,6 +293,26 @@ model Campaign {
   @@index([organizationId])
   @@index([inviteToken])
   @@map("campaigns")
+}
+
+// ─── CAMPAIGN INVITE ────────────────────────────────────────────────────────────
+// Tracks every email that was invited to a campaign, independent of session creation.
+// Gives admins an "invited vs started vs completed" enrollment funnel.
+
+model CampaignInvite {
+  id         String   @id @default(cuid())
+  campaignId String
+  email      String
+  userId     String?  // set once the user account exists (always set on create)
+
+  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  invitedAt  DateTime @default(now())
+
+  @@unique([campaignId, email])
+  @@index([campaignId])
+  @@map("campaign_invites")
 }
 
 // ─── ASSESSMENT SESSION ─────────────────────────────────────────────────────────

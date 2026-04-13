@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 interface Candidate {
   id: string;
@@ -24,6 +25,7 @@ interface Candidate {
 const emptyForm = { email: "", name: "", jobTitle: "", company: "" };
 
 export default function CandidatesPage() {
+  const router = useRouter();
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [loading, setLoading] = useState(true);
   const [showInvite, setShowInvite] = useState(false);
@@ -32,7 +34,6 @@ export default function CandidatesPage() {
   const [formError, setFormError] = useState("");
   const [formSuccess, setFormSuccess] = useState("");
   const [search, setSearch] = useState("");
-  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const load = () => {
     setLoading(true);
@@ -217,137 +218,49 @@ export default function CandidatesPage() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {filtered.map((c) => (
-                <>
-                  <tr
-                    key={c.id}
-                    className="hover:bg-gray-50 cursor-pointer"
-                    onClick={() => setExpandedId(expandedId === c.id ? null : c.id)}
-                  >
-                    <td className="px-5 py-3">
-                      <p className="font-medium text-gray-900">{c.name ?? "—"}</p>
-                      <p className="text-gray-500 text-xs">{c.email}</p>
-                    </td>
-                    <td className="px-5 py-3">
-                      <p className="text-gray-800">{c.jobTitle ?? "—"}</p>
-                      <p className="text-gray-500 text-xs">{c.company ?? "—"}</p>
-                    </td>
-                    <td className="px-5 py-3 text-center">
-                      <span className="font-medium text-gray-900">{completedSessions(c).length}</span>
-                      <span className="text-gray-400">/{c.sessions.length}</span>
-                    </td>
-                    <td className="px-5 py-3 text-center font-medium text-gray-900">
-                      {bestScore(c) !== null ? `${bestScore(c)!.toFixed(0)}` : "—"}
-                    </td>
-                    <td className="px-5 py-3 text-center">
-                      {c.candidateProfile?.onboardingCompletedAt ? (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">Complete</span>
-                      ) : (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 font-medium">Pending</span>
-                      )}
-                    </td>
-                    <td className="px-5 py-3 text-center">
-                      {c.emailVerified ? (
-                        <span className="text-xs text-green-600">✓ Yes</span>
-                      ) : (
-                        <span className="text-xs text-gray-400">Not yet</span>
-                      )}
-                    </td>
-                    <td className="px-5 py-3 text-right" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        onClick={() => handleDelete(c)}
-                        className="text-xs text-gray-300 hover:text-red-500"
-                      >
-                        Remove
-                      </button>
-                    </td>
-                  </tr>
-
-                  {/* Expanded row — demographics + sessions */}
-                  {expandedId === c.id && (
-                    <tr key={`${c.id}-expanded`} className="bg-blue-50">
-                      <td colSpan={7} className="px-5 py-4">
-                        <div className="grid grid-cols-2 gap-6">
-                          {/* Demographics */}
-                          <div>
-                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Demographics</p>
-                            {c.candidateProfile ? (
-                              <dl className="space-y-1 text-sm">
-                                {c.candidateProfile.yearsOfExperience && (
-                                  <div className="flex gap-2">
-                                    <dt className="text-gray-500 w-36 shrink-0">Experience</dt>
-                                    <dd className="text-gray-900">{c.candidateProfile.yearsOfExperience} years</dd>
-                                  </div>
-                                )}
-                                {c.candidateProfile.country && (
-                                  <div className="flex gap-2">
-                                    <dt className="text-gray-500 w-36 shrink-0">Country</dt>
-                                    <dd className="text-gray-900">{c.candidateProfile.country}</dd>
-                                  </div>
-                                )}
-                                {c.candidateProfile.industrySector && (
-                                  <div className="flex gap-2">
-                                    <dt className="text-gray-500 w-36 shrink-0">Industry</dt>
-                                    <dd className="text-gray-900">{c.candidateProfile.industrySector}</dd>
-                                  </div>
-                                )}
-                                {c.candidateProfile.certifications?.length > 0 && (
-                                  <div className="flex gap-2">
-                                    <dt className="text-gray-500 w-36 shrink-0">Certifications</dt>
-                                    <dd className="text-gray-900">{c.candidateProfile.certifications.join(", ")}</dd>
-                                  </div>
-                                )}
-                                {!c.candidateProfile.onboardingCompletedAt && (
-                                  <p className="text-gray-400 text-xs italic">Candidate has not completed the demographic questionnaire yet.</p>
-                                )}
-                              </dl>
-                            ) : (
-                              <p className="text-gray-400 text-xs italic">No profile information yet.</p>
-                            )}
-                          </div>
-
-                          {/* Sessions */}
-                          <div>
-                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Assessment History</p>
-                            {c.sessions.length === 0 ? (
-                              <p className="text-gray-400 text-xs italic">No assessments taken yet.</p>
-                            ) : (
-                              <div className="space-y-1">
-                                {c.sessions.map((s) => (
-                                  <div key={s.id} className="flex items-center justify-between text-sm">
-                                    <div className="flex items-center gap-2">
-                                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                                        s.status === "COMPLETED" ? "bg-green-100 text-green-700" :
-                                        s.status === "IN_PROGRESS" ? "bg-blue-100 text-blue-700" :
-                                        "bg-gray-100 text-gray-600"
-                                      }`}>
-                                        {s.status}
-                                      </span>
-                                      {s.completedAt && (
-                                        <span className="text-gray-400 text-xs">{new Date(s.completedAt).toLocaleDateString()}</span>
-                                      )}
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                      {s.overallScore !== null && (
-                                        <span className="font-medium text-gray-900">{s.overallScore.toFixed(0)}</span>
-                                      )}
-                                      <Link
-                                        href={`/admin/results/${s.id}`}
-                                        className="text-blue-600 hover:text-blue-800 text-xs"
-                                        onClick={(e) => e.stopPropagation()}
-                                      >
-                                        Details →
-                                      </Link>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </>
+                <tr
+                  key={c.id}
+                  className="hover:bg-gray-50 cursor-pointer"
+                  onClick={() => router.push(`/admin/candidates/${c.id}`)}
+                >
+                  <td className="px-5 py-3">
+                    <p className="font-medium text-gray-900">{c.name ?? "—"}</p>
+                    <p className="text-gray-500 text-xs">{c.email}</p>
+                  </td>
+                  <td className="px-5 py-3">
+                    <p className="text-gray-800">{c.jobTitle ?? "—"}</p>
+                    <p className="text-gray-500 text-xs">{c.company ?? "—"}</p>
+                  </td>
+                  <td className="px-5 py-3 text-center">
+                    <span className="font-medium text-gray-900">{completedSessions(c).length}</span>
+                    <span className="text-gray-400">/{c.sessions.length}</span>
+                  </td>
+                  <td className="px-5 py-3 text-center font-medium text-gray-900">
+                    {bestScore(c) !== null ? `${bestScore(c)!.toFixed(0)}` : "—"}
+                  </td>
+                  <td className="px-5 py-3 text-center">
+                    {c.candidateProfile?.onboardingCompletedAt ? (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">Complete</span>
+                    ) : (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 font-medium">Pending</span>
+                    )}
+                  </td>
+                  <td className="px-5 py-3 text-center">
+                    {c.emailVerified ? (
+                      <span className="text-xs text-green-600">✓ Yes</span>
+                    ) : (
+                      <span className="text-xs text-gray-400">Not yet</span>
+                    )}
+                  </td>
+                  <td className="px-5 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      onClick={() => handleDelete(c)}
+                      className="text-xs text-gray-300 hover:text-red-500"
+                    >
+                      Remove
+                    </button>
+                  </td>
+                </tr>
               ))}
             </tbody>
           </table>
