@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 
@@ -10,16 +10,12 @@ export default function InvitePage() {
   const { data: session, status } = useSession();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const hasAutoStarted = useRef(false);
 
   const token = params.token as string;
 
-  const handleStart = async () => {
-    if (!session?.user) {
-      // Redirect to sign in, then back here
-      router.push(`/auth/signin?callbackUrl=/invite/${token}`);
-      return;
-    }
-
+  const startSession = async () => {
+    if (loading) return;
     setLoading(true);
     setError(null);
 
@@ -33,22 +29,42 @@ export default function InvitePage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error ?? "Failed to create session");
+        setError(data.error ?? "Failed to create session. Please contact your administrator.");
+        setLoading(false);
         return;
       }
 
       router.push(`/assessment/${data.sessionId}`);
     } catch {
-      setError("Network error. Please try again.");
-    } finally {
+      setError("Network error. Please check your connection and try again.");
       setLoading(false);
     }
   };
 
-  if (status === "loading") {
+  const handleStart = () => {
+    if (!session?.user) {
+      router.push(`/auth/signin?callbackUrl=/invite/${token}`);
+      return;
+    }
+    startSession();
+  };
+
+  // Auto-start when user lands back on this page after signing in
+  useEffect(() => {
+    if (status === "authenticated" && session?.user && !hasAutoStarted.current) {
+      hasAutoStarted.current = true;
+      startSession();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, session]);
+
+  if (status === "loading" || (status === "authenticated" && !error)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-pulse text-gray-400">Loading...</div>
+        <div className="text-center space-y-3">
+          <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-gray-500 text-sm">Setting up your assessment…</p>
+        </div>
       </div>
     );
   }
@@ -58,25 +74,14 @@ export default function InvitePage() {
       <div className="max-w-lg w-full bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
         <div className="text-center space-y-6">
           <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto">
-            <svg
-              className="w-8 h-8 text-blue-600"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
+            <svg className="w-8 h-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
 
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              Skills Assessment
-            </h1>
+            <h1 className="text-2xl font-bold text-gray-900">Skills Assessment</h1>
             <p className="mt-2 text-gray-600">
               You have been invited to complete a professional skills assessment.
             </p>
@@ -94,8 +99,9 @@ export default function InvitePage() {
           </div>
 
           {error && (
-            <div className="bg-red-50 text-red-700 p-3 rounded-lg text-sm">
-              {error}
+            <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg text-sm text-left">
+              <p className="font-medium mb-1">Unable to start assessment</p>
+              <p>{error}</p>
             </div>
           )}
 
@@ -106,12 +112,12 @@ export default function InvitePage() {
                        hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500
                        focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? "Setting up..." : session?.user ? "Begin Assessment" : "Sign in to Begin"}
+            {loading ? "Setting up…" : session?.user ? "Try Again" : "Sign in to Begin"}
           </button>
 
           {!session?.user && (
             <p className="text-xs text-gray-400">
-              You&apos;ll receive a magic link to verify your email.
+              You&apos;ll receive a one-time code to verify your email address.
             </p>
           )}
         </div>
