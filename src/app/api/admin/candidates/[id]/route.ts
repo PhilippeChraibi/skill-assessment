@@ -28,6 +28,21 @@ export async function GET(
           },
           orderBy: { createdAt: "desc" },
         },
+        campaignInvites: {
+          orderBy: { invitedAt: "desc" },
+          include: {
+            campaign: {
+              select: {
+                id: true,
+                name: true,
+                startsAt: true,
+                endsAt: true,
+                isArchived: true,
+                jobProfile: { select: { displayName: true, band: true, track: true, bandLabel: true } },
+              },
+            },
+          },
+        },
       },
     });
 

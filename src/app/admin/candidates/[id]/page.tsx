@@ -32,6 +32,24 @@ interface Session {
   jobProfile: { id: string; displayName: Record<string, string>; track: string; band: number; bandLabel: string } | null;
 }
 
+interface CampaignSummary {
+  id: string;
+  name: string;
+  startsAt: string;
+  endsAt: string;
+  isArchived: boolean;
+  jobProfile: { displayName: Record<string, string>; band: number; track: string; bandLabel: string };
+}
+
+// Campaigns available to assign (from /api/admin/campaigns list)
+type Campaign = CampaignSummary;
+
+interface CampaignInvite {
+  id: string;
+  invitedAt: string;
+  campaign: CampaignSummary;
+}
+
 interface Candidate {
   id: string;
   email: string;
@@ -43,14 +61,7 @@ interface Candidate {
   preferredLanguage: string;
   candidateProfile: CandidateProfile | null;
   sessions: Session[];
-}
-
-interface Campaign {
-  id: string;
-  name: string;
-  startsAt: string;
-  endsAt: string;
-  jobProfile: { displayName: Record<string, string>; band: number; track: string };
+  campaignInvites: CampaignInvite[];
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────────
@@ -362,7 +373,76 @@ export default function CandidateDetailPage() {
         </div>
       </div>
 
-      {/* Campaign assignment */}
+      {/* Campaign Assignments (existing) */}
+      {candidate.campaignInvites.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+            <h2 className="font-semibold text-gray-900">Campaign Assignments</h2>
+            <span className="text-xs text-gray-400">{candidate.campaignInvites.length} campaign{candidate.campaignInvites.length !== 1 ? "s" : ""}</span>
+          </div>
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 border-b border-gray-100">
+              <tr>
+                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Campaign</th>
+                <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Profile</th>
+                <th className="text-center px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Status</th>
+                <th className="text-center px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Score</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Invited</th>
+                <th className="px-4 py-3"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {candidate.campaignInvites.map(inv => {
+                // Find session for this campaign
+                const sess = candidate.sessions.find(s => s.campaign?.id === inv.campaign.id);
+                const isActive = !inv.campaign.isArchived && new Date(inv.campaign.startsAt) <= new Date() && new Date(inv.campaign.endsAt) >= new Date();
+                return (
+                  <tr key={inv.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-3">
+                      <Link href={`/admin/campaigns/${inv.campaign.id}`} className="font-medium text-blue-600 hover:text-blue-800">
+                        {inv.campaign.name}
+                      </Link>
+                      {!isActive && (
+                        <span className="ml-2 text-xs text-gray-400">{inv.campaign.isArchived ? "archived" : new Date(inv.campaign.endsAt) < new Date() ? "ended" : "not started"}</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-3 text-gray-600">
+                      {(inv.campaign.jobProfile.displayName as any)?.en ?? inv.campaign.jobProfile.track.replace(/_/g, " ")}
+                      <span className="ml-1.5 text-xs text-gray-400">L{inv.campaign.jobProfile.band}</span>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      {sess ? (
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                          sess.status === "COMPLETED" ? "bg-green-100 text-green-700" :
+                          sess.status === "IN_PROGRESS" ? "bg-blue-100 text-blue-700" :
+                          "bg-gray-100 text-gray-600"
+                        }`}>{sess.status.replace("_", " ")}</span>
+                      ) : (
+                        <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-amber-50 text-amber-600">Invited</span>
+                      )}
+                    </td>
+                    <td className={`px-4 py-3 text-center font-bold ${scoreColor(sess?.overallScore ?? null)}`}>
+                      {sess?.overallScore != null ? sess.overallScore.toFixed(0) : "—"}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-gray-500">
+                      {new Date(inv.invitedAt).toLocaleDateString()}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      {sess?.status === "COMPLETED" && (
+                        <Link href={`/admin/results/${sess.id}`} className="text-blue-600 hover:text-blue-800 text-xs font-medium">
+                          Report →
+                        </Link>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Assign to new campaign */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <h2 className="font-semibold text-gray-900 mb-1">Assign Campaign</h2>
         <p className="text-sm text-gray-500 mb-4">Send this candidate an invite to an active campaign.</p>

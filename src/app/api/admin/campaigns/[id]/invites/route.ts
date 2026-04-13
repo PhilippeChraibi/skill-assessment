@@ -2,9 +2,60 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth-utils";
 import { prisma } from "@/lib/db";
 import { logger } from "@/lib/logger";
+import { selectQuestions } from "@/services/question-selector";
+import type { CampaignSettings } from "@/types";
 import nodemailer from "nodemailer";
 
 const log = logger.child({ route: "admin/campaigns/[id]/invites" });
+
+// Create a PENDING session immediately at invite time.
+// Bypasses the campaign date check — admin-initiated invites should always work.
+// If no questions are seeded yet the session is created with an empty sequence
+// (it will be populated when the candidate starts the assessment via the invite link).
+async function createPendingSessionForInvite(
+  candidateId: string,
+  campaign: { id: string; jobProfileId: string; maxAttempts: number; settings: unknown; isArchived: boolean },
+): Promise<void> {
+  if (campaign.isArchived) return;
+
+  // Don't exceed maxAttempts
+  const existingCount = await prisma.assessmentSession.count({
+    where: { candidateId, campaignId: campaign.id, deletedAt: null },
+  });
+  if (existingCount >= campaign.maxAttempts) return;
+
+  // Resume if a PENDING or IN_PROGRESS session already exists
+  const existing = await prisma.assessmentSession.findFirst({
+    where: { candidateId, campaignId: campaign.id, status: { in: ["PENDING", "IN_PROGRESS"] }, deletedAt: null },
+  });
+  if (existing) return;
+
+  // Try to select questions; fall back to empty sequence if none seeded
+  let questionSequence: string[] = [];
+  try {
+    const settings = (campaign.settings ?? {}) as CampaignSettings;
+    const candidate = await prisma.user.findUnique({ where: { id: candidateId }, select: { preferredLanguage: true } });
+    const allowedLangs = settings.allowedLanguages ?? ["en"];
+    const language = candidate && allowedLangs.includes(candidate.preferredLanguage ?? "en")
+      ? (candidate.preferredLanguage ?? "en")
+      : allowedLangs[0];
+    const questions = await selectQuestions({ jobProfileId: campaign.jobProfileId, language, campaignSettings: settings });
+    questionSequence = questions.map((q) => q.id);
+  } catch (err: any) {
+    log.warn({ error: err.message }, "Question selection failed during invite — creating session with empty sequence");
+  }
+
+  await prisma.assessmentSession.create({
+    data: {
+      candidateId,
+      jobProfileId: campaign.jobProfileId,
+      campaignId: campaign.id,
+      status: "PENDING",
+      questionSequence,
+    },
+  });
+  log.info({ candidateId, campaignId: campaign.id, questionCount: questionSequence.length }, "PENDING session created at invite time");
+}
 
 // POST — create candidate accounts and send invite emails
 export async function POST(
@@ -20,7 +71,7 @@ export async function POST(
 
     const campaign = await prisma.campaign.findUnique({
       where: { id },
-      select: { inviteToken: true, name: true },
+      select: { id: true, inviteToken: true, name: true, jobProfileId: true, maxAttempts: true, settings: true, isArchived: true },
     });
 
     if (!campaign) {
@@ -67,6 +118,9 @@ export async function POST(
           create: { campaignId: id, email: trimmed, userId: user.id },
           update: { userId: user.id },
         });
+
+        // Auto-create a PENDING session so the candidate appears in the Sessions block immediately
+        await createPendingSessionForInvite(user.id, campaign);
 
         // Send invite email
         try {
