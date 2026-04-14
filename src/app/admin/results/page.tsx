@@ -27,7 +27,7 @@ export default function ResultsPage() {
     <div>
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Results</h1>
 
-      <div className="flex gap-3 mb-4">
+      <div className="flex flex-wrap gap-2 mb-4">
         {["", "COMPLETED", "IN_PROGRESS", "FLAGGED", "PENDING"].map((s) => (
           <button
             key={s}
@@ -46,8 +46,8 @@ export default function ResultsPage() {
       {loading ? (
         <div className="text-gray-400 py-12 text-center">Loading...</div>
       ) : (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
+          <table className="w-full text-sm min-w-[560px]">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="text-left px-4 py-3 font-medium text-gray-500">Candidate</th>

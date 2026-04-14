@@ -272,7 +272,7 @@ export default function ProfilesPage() {
                 </select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Display Name (English) <span className="text-red-500">*</span></label>
                 <input
@@ -293,7 +293,7 @@ export default function ProfilesPage() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Level Label <span className="text-red-500">*</span></label>
                 <input
@@ -370,7 +370,7 @@ export default function ProfilesPage() {
                       {/* Names */}
                       <div className="flex-1 min-w-0">
                         {editingId === p.id ? (
-                          <div className="grid grid-cols-2 gap-2">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                             <input
                               value={editForm.displayNameEn}
                               onChange={(e) => setEditForm({ ...editForm, displayNameEn: e.target.value })}
@@ -402,7 +402,7 @@ export default function ProfilesPage() {
                           </div>
                         )}
                         {editingId === p.id && (
-                          <div className="grid grid-cols-2 gap-2 mt-2">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
                             <input
                               value={editForm.bandLabel}
                               onChange={(e) => setEditForm({ ...editForm, bandLabel: e.target.value })}

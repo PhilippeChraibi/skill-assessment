@@ -40,7 +40,7 @@ export default function SessionReviewPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Session Review</h1>
           <p className="text-gray-500 text-sm mt-1">
@@ -58,7 +58,7 @@ export default function SessionReviewPage() {
       </div>
 
       {/* Score summary */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
           { label: "Overall", value: session.overallScore?.toFixed(0) ?? "—" },
           { label: "Theory", value: session.theoryScore?.toFixed(0) ?? "—" },

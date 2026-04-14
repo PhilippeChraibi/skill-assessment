@@ -31,20 +31,9 @@ export async function createSession(
     throw new Error("Campaign has been archived");
   }
 
-  // Enforce maxAttempts
-  const existingCount = await prisma.assessmentSession.count({
-    where: {
-      candidateId,
-      campaignId,
-      deletedAt: null,
-    },
-  });
-
-  if (existingCount >= campaign.maxAttempts) {
-    throw new Error(`Maximum attempts (${campaign.maxAttempts}) reached for this campaign`);
-  }
-
-  // Check for an existing PENDING or IN_PROGRESS session (resume instead of creating new)
+  // ── 1. Resume existing PENDING/IN_PROGRESS session first ─────────────────────
+  // This MUST come before the maxAttempts check: pre-created PENDING sessions
+  // (created at invite time) count toward the total but must always be resumable.
   const existingSession = await prisma.assessmentSession.findFirst({
     where: {
       candidateId,
@@ -55,8 +44,49 @@ export async function createSession(
   });
 
   if (existingSession) {
+    // If the session has an empty questionSequence (created before questions were
+    // seeded), repopulate it now so the assessment isn't instantly "done".
+    const seq = existingSession.questionSequence as string[] | null;
+    if (!seq || seq.length === 0) {
+      try {
+        const cand = await prisma.user.findUnique({
+          where: { id: candidateId },
+          select: { preferredLanguage: true },
+        });
+        const settings = campaign.settings as CampaignSettings;
+        const allowedLangs = settings.allowedLanguages ?? ["en"];
+        const lang = cand && allowedLangs.includes(cand.preferredLanguage)
+          ? cand.preferredLanguage
+          : allowedLangs[0];
+        const qs = await selectQuestions({ jobProfileId: campaign.jobProfileId, language: lang, campaignSettings: settings });
+        if (qs.length > 0) {
+          const updated = await prisma.assessmentSession.update({
+            where: { id: existingSession.id },
+            data: { questionSequence: qs.map((q) => q.id) },
+          });
+          log.info({ sessionId: existingSession.id, questionCount: qs.length }, "Repopulated empty question sequence on resume");
+          return updated;
+        }
+      } catch (repopErr: any) {
+        log.warn({ error: repopErr.message }, "Could not repopulate question sequence — session still resumable");
+      }
+    }
     log.info({ sessionId: existingSession.id }, "Resuming existing session");
     return existingSession;
+  }
+
+  // ── 2. Enforce maxAttempts (PENDING placeholders don't count as attempts) ────
+  const existingCount = await prisma.assessmentSession.count({
+    where: {
+      candidateId,
+      campaignId,
+      deletedAt: null,
+      status: { notIn: ["PENDING"] },
+    },
+  });
+
+  if (existingCount >= campaign.maxAttempts) {
+    throw new Error(`Maximum attempts (${campaign.maxAttempts}) reached for this campaign`);
   }
 
   // Get candidate's preferred language

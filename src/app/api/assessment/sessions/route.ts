@@ -32,6 +32,20 @@ export async function POST(req: NextRequest) {
 
     const assessmentSession = await createSession(session.user.id, campaign.id);
 
+    // Track self-registered users in CampaignInvite so they appear in the
+    // campaign candidates list (not in the orphan "self-registered" section).
+    if (session.user.email) {
+      try {
+        await prisma.campaignInvite.upsert({
+          where: { campaignId_email: { campaignId: campaign.id, email: session.user.email } },
+          create: { campaignId: campaign.id, email: session.user.email, userId: session.user.id },
+          update: { userId: session.user.id },
+        });
+      } catch {
+        // Non-fatal — don't block the assessment if this fails
+      }
+    }
+
     return NextResponse.json({ sessionId: assessmentSession.id, status: assessmentSession.status });
   } catch (error: any) {
     log.error({ error: error.message }, "Failed to create session");
