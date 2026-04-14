@@ -291,7 +291,7 @@ export default function CandidateDetailPage() {
         </div>
 
         {/* Stats row */}
-        <div className="grid grid-cols-4 gap-4 mt-6 pt-5 border-t border-gray-100">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6 pt-5 border-t border-gray-100">
           <div className="text-center">
             <p className="text-2xl font-bold text-gray-900">{candidate.sessions.length}</p>
             <p className="text-xs text-gray-500 mt-0.5">Assessments taken</p>
@@ -317,7 +317,7 @@ export default function CandidateDetailPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Demographics */}
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <h2 className="font-semibold text-gray-900 mb-4">Demographics</h2>
@@ -375,7 +375,7 @@ export default function CandidateDetailPage() {
 
       {/* Campaign Assignments (existing) */}
       {candidate.campaignInvites.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
           <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
             <h2 className="font-semibold text-gray-900">Campaign Assignments</h2>
             <span className="text-xs text-gray-400">{candidate.campaignInvites.length} campaign{candidate.campaignInvites.length !== 1 ? "s" : ""}</span>
@@ -475,14 +475,14 @@ export default function CandidateDetailPage() {
       </div>
 
       {/* Assessment history */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
         <div className="px-6 py-4 border-b border-gray-100">
           <h2 className="font-semibold text-gray-900">Assessment History</h2>
         </div>
         {candidate.sessions.length === 0 ? (
           <div className="px-6 py-8 text-center text-gray-400 text-sm">No assessments taken yet.</div>
         ) : (
-          <table className="w-full text-sm">
+          <table className="w-full text-sm min-w-[700px]">
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr>
                 <th className="text-left px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Campaign</th>

@@ -157,7 +157,7 @@ export default function CampaignDetailPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">{campaign.name}</h1>
           <p className="text-gray-500 text-sm mt-1">
@@ -181,7 +181,7 @@ export default function CampaignDetailPage() {
       </div>
 
       {/* Enrollment funnel stats */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
           { label: "Invited", value: invited, color: "text-gray-900" },
           { label: "Started", value: started, color: "text-blue-700" },
@@ -245,7 +245,7 @@ export default function CampaignDetailPage() {
       </div>
 
       {/* Invited candidates table */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
         <div className="px-5 py-3 border-b border-gray-200 flex items-center justify-between">
           <h2 className="font-semibold text-gray-900">Candidates ({invited})</h2>
           {invited > 0 && (
@@ -258,7 +258,7 @@ export default function CampaignDetailPage() {
             No candidates invited yet. Use the invite link or bulk email above.
           </div>
         ) : (
-          <table className="w-full text-sm">
+          <table className="w-full text-sm min-w-[560px]">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Candidate</th>

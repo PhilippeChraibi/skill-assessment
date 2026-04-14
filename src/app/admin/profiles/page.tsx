@@ -193,7 +193,7 @@ export default function ProfilesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Job Profiles</h1>
           <p className="text-sm text-gray-500 mt-1">
@@ -228,7 +228,7 @@ export default function ProfilesPage() {
         <div className="bg-white rounded-xl border border-blue-200 p-6 shadow-sm">
           <h2 className="font-semibold text-gray-900 mb-4">New Job Profile</h2>
           <form onSubmit={handleCreate} className="space-y-4">
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Track <span className="text-red-500">*</span></label>
                 <select

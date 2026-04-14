@@ -90,7 +90,7 @@ export default function CandidatesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Candidates</h1>
           <p className="text-sm text-gray-500 mt-1">{candidates.length} candidate{candidates.length !== 1 ? "s" : ""} in your organisation</p>
@@ -108,7 +108,7 @@ export default function CandidatesPage() {
         <div className="bg-white rounded-xl border border-blue-200 p-6 shadow-sm">
           <h2 className="font-semibold text-gray-900 mb-4">Invite a Candidate</h2>
           <form onSubmit={handleInvite} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Email address <span className="text-red-500">*</span>
@@ -204,7 +204,8 @@ export default function CandidatesPage() {
         </div>
       ) : (
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[640px]">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Candidate</th>
@@ -264,6 +265,7 @@ export default function CandidatesPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
     </div>
