@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { McqQuestion } from "@/components/assessment/McqQuestion";
 import { RankedChoiceQuestion } from "@/components/assessment/RankedChoiceQuestion";
@@ -33,6 +33,83 @@ interface SessionInfo {
   };
 }
 
+// ─── Completing screen ──────────────────────────────────────────────────────────
+
+const STEPS = [
+  { label: "Securing your responses", duration: 2000 },
+  { label: "Analysing answers with AI", duration: 8000 },
+  { label: "Calculating scores", duration: 4000 },
+  { label: "Preparing your report", duration: 0 }, // stays until redirect
+];
+
+function CompletingScreen() {
+  const [stepIndex, setStepIndex] = useState(0);
+  const [dots, setDots] = useState(".");
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Advance steps automatically
+  useEffect(() => {
+    if (stepIndex < STEPS.length - 1 && STEPS[stepIndex].duration > 0) {
+      timerRef.current = setTimeout(() => setStepIndex((i) => i + 1), STEPS[stepIndex].duration);
+    }
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+  }, [stepIndex]);
+
+  // Animated ellipsis
+  useEffect(() => {
+    const id = setInterval(() => setDots((d) => (d.length >= 3 ? "." : d + ".")), 500);
+    return () => clearInterval(id);
+  }, []);
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+      <div className="max-w-md w-full bg-white rounded-2xl shadow-sm border border-gray-200 p-10 text-center space-y-8">
+
+        {/* Spinner */}
+        <div className="relative w-20 h-20 mx-auto">
+          <div className="absolute inset-0 rounded-full border-4 border-blue-100" />
+          <div className="absolute inset-0 rounded-full border-4 border-blue-600 border-t-transparent animate-spin" />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <svg className="w-7 h-7 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+        </div>
+
+        <div>
+          <h1 className="text-xl font-bold text-gray-900">Building your report{dots}</h1>
+          <p className="mt-2 text-sm text-gray-500">This usually takes 20–40 seconds. Please keep this page open.</p>
+        </div>
+
+        {/* Step list */}
+        <ol className="text-left space-y-3">
+          {STEPS.map((step, i) => {
+            const done = i < stepIndex;
+            const active = i === stepIndex;
+            return (
+              <li key={step.label} className={`flex items-center gap-3 text-sm transition-opacity duration-300 ${i > stepIndex ? "opacity-30" : "opacity-100"}`}>
+                <span className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold transition-colors ${
+                  done ? "bg-green-100 text-green-600" : active ? "bg-blue-100 text-blue-600" : "bg-gray-100 text-gray-400"
+                }`}>
+                  {done ? "✓" : i + 1}
+                </span>
+                <span className={active ? "text-gray-900 font-medium" : done ? "text-green-700" : "text-gray-400"}>
+                  {step.label}
+                </span>
+                {active && <span className="ml-auto w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin flex-shrink-0" />}
+              </li>
+            );
+          })}
+        </ol>
+
+        <p className="text-xs text-gray-400">Do not close this tab — your results will appear automatically.</p>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main assessment page ───────────────────────────────────────────────────────
+
 export default function AssessmentPage() {
   const params = useParams();
   const router = useRouter();
@@ -43,6 +120,7 @@ export default function AssessmentPage() {
   const [questionIndex, setQuestionIndex] = useState(0);
   const [totalQuestions, setTotalQuestions] = useState(0);
   const [done, setDone] = useState(false);
+  const [completing, setCompleting] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -172,12 +250,14 @@ export default function AssessmentPage() {
   }, [done]);
 
   async function completeAssessment() {
+    setCompleting(true);
     try {
       await fetch(`/api/assessment/sessions/${sessionId}/complete`, {
         method: "POST",
       });
       router.push(`/assessment/complete?sessionId=${sessionId}`);
     } catch {
+      setCompleting(false);
       setError("Failed to complete assessment");
     }
   }
@@ -208,6 +288,10 @@ export default function AssessmentPage() {
         </div>
       </div>
     );
+  }
+
+  if (completing) {
+    return <CompletingScreen />;
   }
 
   if (!question) return null;
